@@ -1,0 +1,722 @@
+{
+  "mobileLayouts": [
+    {
+      "layoutId": "mobile-flight-tracking-layout",
+      "dashboardId": "flight-tracking-dashboard",
+      "layoutName": "Mobile Flight Tracking Layout",
+      "description": "Optimized mobile layout for flight tracking operations",
+      "breakpoints": {
+        "mobile": {
+          "maxWidth": 768,
+          "minWidth": 320
+        },
+        "tablet": {
+          "maxWidth": 1024,
+          "minWidth": 769
+        },
+        "desktop": {
+          "minWidth": 1025
+        }
+      },
+      "mobileConfiguration": {
+        "screenSize": "MOBILE",
+        "orientation": "PORTRAIT",
+        "visualLayout": [
+          {
+            "visualId": "mobile-kpi-summary",
+            "title": "📊 Live Flight Summary",
+            "visualType": "KPI_GRID",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 4
+            },
+            "mobileSpecificOptions": {
+              "fontSize": "LARGE",
+              "showSparklines": true,
+              "compactMode": true
+            },
+            "metrics": [
+              {
+                "fieldId": "active_flights",
+                "displayName": "✈️ Active",
+                "format": "NUMBER"
+              },
+              {
+                "fieldId": "avg_altitude",
+                "displayName": "📈 Avg Alt",
+                "format": "ALTITUDE_FT"
+              },
+              {
+                "fieldId": "data_quality",
+                "displayName": "🎯 Quality",
+                "format": "PERCENTAGE"
+              }
+            ]
+          },
+          {
+            "visualId": "mobile-flight-map-simplified",
+            "title": "🌍 Flight Positions",
+            "visualType": "GEOSPATIAL_MAP",
+            "position": {
+              "x": 0,
+              "y": 4,
+              "width": 24,
+              "height": 12
+            },
+            "mobileSpecificOptions": {
+              "simplifiedControls": true,
+              "reducedDataPoints": true,
+              "maxDataPoints": 500,
+              "clustering": true,
+              "touchOptimized": true,
+              "gestureControls": {
+                "pinchToZoom": true,
+                "panEnabled": true,
+                "doubleTapZoom": true
+              }
+            },
+            "fieldConfiguration": {
+              "locationFields": ["latitude", "longitude"],
+              "sizeField": "altitude_ft",
+              "colorField": "speed_category",
+              "tooltipFields": ["callsign", "altitude_ft", "speed_knots"]
+            }
+          },
+          {
+            "visualId": "mobile-regional-breakdown",
+            "title": "🌍 Regional Activity",
+            "visualType": "HORIZONTAL_BAR_CHART",
+            "position": {
+              "x": 0,
+              "y": 16,
+              "width": 24,
+              "height": 6
+            },
+            "mobileSpecificOptions": {
+              "compactBars": true,
+              "showDataLabels": true,
+              "maxCategories": 5
+            }
+          },
+          {
+            "visualId": "mobile-hourly-trend",
+            "title": "📈 24h Flight Trend",
+            "visualType": "LINE_CHART",
+            "position": {
+              "x": 0,
+              "y": 22,
+              "width": 24,
+              "height": 6
+            },
+            "mobileSpecificOptions": {
+              "simplifiedAxis": true,
+              "reducedTickMarks": true,
+              "compactLegend": true
+            }
+          }
+        ]
+      },
+      "tabletConfiguration": {
+        "screenSize": "TABLET",
+        "orientation": "LANDSCAPE",
+        "visualLayout": [
+          {
+            "visualId": "tablet-kpi-grid",
+            "title": "📊 Flight Operations Dashboard",
+            "visualType": "KPI_GRID",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 3
+            },
+            "metrics": [
+              {
+                "fieldId": "active_flights",
+                "displayName": "Active Flights"
+              },
+              {
+                "fieldId": "avg_altitude",
+                "displayName": "Average Altitude"
+              },
+              {
+                "fieldId": "avg_speed",
+                "displayName": "Average Speed"
+              },
+              {
+                "fieldId": "data_quality",
+                "displayName": "Data Quality"
+              }
+            ]
+          },
+          {
+            "visualId": "tablet-flight-map",
+            "title": "Flight Tracking Map",
+            "visualType": "GEOSPATIAL_MAP",
+            "position": {
+              "x": 0,
+              "y": 3,
+              "width": 16,
+              "height": 10
+            }
+          },
+          {
+            "visualId": "tablet-speed-distribution",
+            "title": "Speed Analysis",
+            "visualType": "HISTOGRAM",
+            "position": {
+              "x": 16,
+              "y": 3,
+              "width": 8,
+              "height": 10
+            }
+          }
+        ]
+      }
+    },
+    {
+      "layoutId": "mobile-performance-analytics-layout",
+      "dashboardId": "performance-analytics-dashboard",
+      "layoutName": "Mobile Performance Analytics Layout",
+      "description": "Mobile-optimized performance monitoring and analytics",
+      "mobileConfiguration": {
+        "screenSize": "MOBILE",
+        "orientation": "PORTRAIT",
+        "visualLayout": [
+          {
+            "visualId": "mobile-performance-alerts",
+            "title": "🚨 System Status",
+            "visualType": "ALERT_BANNER",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 2
+            },
+            "mobileSpecificOptions": {
+              "criticalAlertsOnly": true,
+              "compactDisplay": true,
+              "tapToExpand": true
+            }
+          },
+          {
+            "visualId": "mobile-key-metrics",
+            "title": "⚡ Performance Metrics",
+            "visualType": "METRIC_CARDS",
+            "position": {
+              "x": 0,
+              "y": 2,
+              "width": 24,
+              "height": 6
+            },
+            "mobileSpecificOptions": {
+              "cardLayout": "GRID_2x2",
+              "showTrends": true,
+              "compactNumbers": true
+            },
+            "metrics": [
+              {
+                "fieldId": "processing_latency",
+                "displayName": "⏱️ Latency",
+                "format": "MILLISECONDS",
+                "alertThreshold": 500
+              },
+              {
+                "fieldId": "error_rate",
+                "displayName": "❌ Error Rate",
+                "format": "PERCENTAGE",
+                "alertThreshold": 1.0
+              },
+              {
+                "fieldId": "queue_depth",
+                "displayName": "📊 Queue Depth",
+                "format": "NUMBER",
+                "alertThreshold": 1000
+              },
+              {
+                "fieldId": "throughput",
+                "displayName": "🚀 Throughput",
+                "format": "RATE_PER_SECOND"
+              }
+            ]
+          },
+          {
+            "visualId": "mobile-performance-trend",
+            "title": "📈 Performance Trend (6h)",
+            "visualType": "SPARKLINE_CHART",
+            "position": {
+              "x": 0,
+              "y": 8,
+              "width": 24,
+              "height": 4
+            },
+            "mobileSpecificOptions": {
+              "showMiniLegend": true,
+              "touchInteraction": true
+            }
+          },
+          {
+            "visualId": "mobile-regional-performance",
+            "title": "🌍 Regional Performance",
+            "visualType": "DONUT_CHART",
+            "position": {
+              "x": 0,
+              "y": 12,
+              "width": 24,
+              "height": 8
+            },
+            "mobileSpecificOptions": {
+              "centerText": "Regions",
+              "showPercentages": true,
+              "tapToFilter": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "layoutId": "mobile-data-quality-layout", 
+      "dashboardId": "data-quality-monitoring-dashboard",
+      "layoutName": "Mobile Data Quality Layout",
+      "description": "Mobile-optimized data quality monitoring interface",
+      "mobileConfiguration": {
+        "screenSize": "MOBILE",
+        "orientation": "PORTRAIT",
+        "visualLayout": [
+          {
+            "visualId": "mobile-quality-score-gauge",
+            "title": "🎯 Data Quality Score",
+            "visualType": "GAUGE_CHART",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 6
+            },
+            "mobileSpecificOptions": {
+              "largeDisplay": true,
+              "showTargetLine": true,
+              "colorCoding": true
+            },
+            "thresholds": [
+              {
+                "value": 90,
+                "color": "#DC143C",
+                "label": "Critical"
+              },
+              {
+                "value": 95,
+                "color": "#FFD700",
+                "label": "Warning"
+              },
+              {
+                "value": 98,
+                "color": "#228B22",
+                "label": "Good"
+              }
+            ]
+          },
+          {
+            "visualId": "mobile-quality-timeline",
+            "title": "📊 Quality Timeline (24h)",
+            "visualType": "AREA_CHART",
+            "position": {
+              "x": 0,
+              "y": 6,
+              "width": 24,
+              "height": 6
+            },
+            "mobileSpecificOptions": {
+              "fillOpacity": 0.7,
+              "showDataPoints": false,
+              "simplifiedTooltips": true
+            }
+          },
+          {
+            "visualId": "mobile-validation-summary",
+            "title": "✅ Validation Summary",
+            "visualType": "PROGRESS_BARS",
+            "position": {
+              "x": 0,
+              "y": 12,
+              "width": 24,
+              "height": 6
+            },
+            "mobileSpecificOptions": {
+              "stackedBars": false,
+              "showPercentages": true,
+              "compactLabels": true
+            }
+          },
+          {
+            "visualId": "mobile-anomaly-alerts",
+            "title": "🚨 Recent Anomalies",
+            "visualType": "LIST_VIEW",
+            "position": {
+              "x": 0,
+              "y": 18,
+              "width": 24,
+              "height": 8
+            },
+            "mobileSpecificOptions": {
+              "maxItems": 5,
+              "showTimestamps": true,
+              "tapToDetails": true,
+              "priorityOrdering": true
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "responsiveComponents": [
+    {
+      "componentId": "adaptive-navigation",
+      "componentType": "NAVIGATION_BAR",
+      "description": "Adaptive navigation that changes based on screen size",
+      "configurations": [
+        {
+          "breakpoint": "MOBILE",
+          "layout": "HAMBURGER_MENU",
+          "options": {
+            "collapsible": true,
+            "iconOnly": true,
+            "position": "TOP"
+          }
+        },
+        {
+          "breakpoint": "TABLET",
+          "layout": "HORIZONTAL_TABS",
+          "options": {
+            "scrollable": true,
+            "showLabels": true,
+            "position": "TOP"
+          }
+        },
+        {
+          "breakpoint": "DESKTOP",
+          "layout": "SIDEBAR",
+          "options": {
+            "expandable": true,
+            "showLabels": true,
+            "position": "LEFT"
+          }
+        }
+      ]
+    },
+    {
+      "componentId": "adaptive-filters",
+      "componentType": "FILTER_PANEL",
+      "description": "Responsive filter interface that adapts to screen constraints",
+      "configurations": [
+        {
+          "breakpoint": "MOBILE",
+          "layout": "MODAL_OVERLAY",
+          "options": {
+            "triggerButton": "🔍 Filters",
+            "fullScreen": true,
+            "essentialFiltersOnly": true,
+            "maxFilters": 5
+          }
+        },
+        {
+          "breakpoint": "TABLET",
+          "layout": "COLLAPSIBLE_PANEL",
+          "options": {
+            "position": "TOP",
+            "defaultExpanded": false,
+            "horizontalLayout": true
+          }
+        },
+        {
+          "breakpoint": "DESKTOP",
+          "layout": "SIDEBAR_PANEL",
+          "options": {
+            "position": "LEFT",
+            "defaultExpanded": true,
+            "verticalLayout": true
+          }
+        }
+      ]
+    },
+    {
+      "componentId": "adaptive-charts",
+      "componentType": "CHART_CONTAINER",
+      "description": "Charts that automatically adjust complexity based on screen size",
+      "configurations": [
+        {
+          "breakpoint": "MOBILE",
+          "options": {
+            "simplifiedLabels": true,
+            "reducedDataPoints": true,
+            "maxDataSeries": 3,
+            "compactLegend": true,
+            "touchOptimized": true
+          }
+        },
+        {
+          "breakpoint": "TABLET",
+          "options": {
+            "moderateComplexity": true,
+            "maxDataSeries": 5,
+            "standardLegend": true,
+            "touchEnabled": true
+          }
+        },
+        {
+          "breakpoint": "DESKTOP",
+          "options": {
+            "fullComplexity": true,
+            "unlimitedDataSeries": true,
+            "detailedLegend": true,
+            "mouseInteractions": true
+          }
+        }
+      ]
+    }
+  ],
+  "touchInteractions": [
+    {
+      "interactionId": "swipe-navigation",
+      "description": "Swipe left/right to navigate between dashboard sheets",
+      "gestures": [
+        {
+          "gesture": "SWIPE_LEFT",
+          "action": "NEXT_SHEET",
+          "sensitivity": "MEDIUM"
+        },
+        {
+          "gesture": "SWIPE_RIGHT", 
+          "action": "PREVIOUS_SHEET",
+          "sensitivity": "MEDIUM"
+        }
+      ],
+      "applicableBreakpoints": ["MOBILE", "TABLET"]
+    },
+    {
+      "interactionId": "pinch-zoom-charts",
+      "description": "Pinch to zoom on charts and maps",
+      "gestures": [
+        {
+          "gesture": "PINCH_IN",
+          "action": "ZOOM_OUT",
+          "minScale": 0.5,
+          "sensitivity": "HIGH"
+        },
+        {
+          "gesture": "PINCH_OUT",
+          "action": "ZOOM_IN",
+          "maxScale": 3.0,
+          "sensitivity": "HIGH"
+        }
+      ],
+      "applicableVisualTypes": ["GEOSPATIAL_MAP", "SCATTER_PLOT", "LINE_CHART"]
+    },
+    {
+      "interactionId": "tap-to-filter",
+      "description": "Tap chart elements to apply filters",
+      "gestures": [
+        {
+          "gesture": "SINGLE_TAP",
+          "action": "APPLY_FILTER",
+          "feedback": "VISUAL_HIGHLIGHT"
+        },
+        {
+          "gesture": "DOUBLE_TAP",
+          "action": "DRILL_DOWN",
+          "feedback": "NAVIGATION"
+        },
+        {
+          "gesture": "LONG_PRESS",
+          "action": "CONTEXT_MENU",
+          "feedback": "HAPTIC"
+        }
+      ],
+      "applicableBreakpoints": ["MOBILE", "TABLET"]
+    },
+    {
+      "interactionId": "pull-to-refresh",
+      "description": "Pull down to refresh dashboard data",
+      "gestures": [
+        {
+          "gesture": "PULL_DOWN",
+          "action": "REFRESH_DATA",
+          "threshold": "50px",
+          "feedback": "LOADING_INDICATOR"
+        }
+      ],
+      "applicableBreakpoints": ["MOBILE"]
+    }
+  ],
+  "performanceOptimizations": [
+    {
+      "optimizationId": "mobile-data-reduction",
+      "description": "Reduce data volume for mobile devices",
+      "strategies": [
+        {
+          "strategy": "DATA_SAMPLING",
+          "configuration": {
+            "mobile": {
+              "maxRows": 1000,
+              "samplingMethod": "SYSTEMATIC"
+            },
+            "tablet": {
+              "maxRows": 5000,
+              "samplingMethod": "STRATIFIED"
+            }
+          }
+        },
+        {
+          "strategy": "FIELD_REDUCTION",
+          "configuration": {
+            "mobile": {
+              "essentialFieldsOnly": true,
+              "maxColumns": 10
+            },
+            "tablet": {
+              "moderateFieldSet": true,
+              "maxColumns": 20
+            }
+          }
+        }
+      ]
+    },
+    {
+      "optimizationId": "lazy-loading",
+      "description": "Load visualizations on-demand based on viewport",
+      "configuration": {
+        "enableLazyLoading": true,
+        "loadingThreshold": "50px",
+        "placeholderType": "SKELETON",
+        "priorityLoading": ["KPI", "ALERTS", "CRITICAL_CHARTS"]
+      }
+    },
+    {
+      "optimizationId": "caching-strategy",
+      "description": "Aggressive caching for mobile performance",
+      "configuration": {
+        "mobile": {
+          "cacheTimeout": "5_MINUTES",
+          "aggressiveCaching": true,
+          "offlineSupport": true
+        },
+        "tablet": {
+          "cacheTimeout": "2_MINUTES",
+          "standardCaching": true,
+          "offlineSupport": false
+        }
+      }
+    }
+  ],
+  "accessibilityFeatures": [
+    {
+      "featureId": "voice-commands",
+      "description": "Voice command support for navigation and filtering",
+      "commands": [
+        {
+          "phrase": "Show flight map",
+          "action": "NAVIGATE_TO_VISUAL",
+          "target": "flight-tracking-map"
+        },
+        {
+          "phrase": "Filter by North America",
+          "action": "APPLY_FILTER",
+          "filter": "region_filter",
+          "value": "North America"
+        },
+        {
+          "phrase": "Refresh data",
+          "action": "REFRESH_DASHBOARD"
+        }
+      ]
+    },
+    {
+      "featureId": "high-contrast-mode",
+      "description": "High contrast color schemes for better visibility",
+      "colorSchemes": [
+        {
+          "schemeId": "high-contrast-dark",
+          "backgroundColor": "#000000",
+          "textColor": "#FFFFFF",
+          "accentColor": "#00FF00",
+          "warningColor": "#FFFF00",
+          "errorColor": "#FF0000"
+        },
+        {
+          "schemeId": "high-contrast-light",
+          "backgroundColor": "#FFFFFF",
+          "textColor": "#000000",
+          "accentColor": "#0000FF",
+          "warningColor": "#FF8C00",
+          "errorColor": "#DC143C"
+        }
+      ]
+    },
+    {
+      "featureId": "screen-reader-support",
+      "description": "Enhanced screen reader compatibility",
+      "features": [
+        "ALT_TEXT_FOR_VISUALS",
+        "ARIA_LABELS",
+        "KEYBOARD_NAVIGATION",
+        "FOCUS_INDICATORS",
+        "DATA_TABLE_ALTERNATIVES"
+      ]
+    },
+    {
+      "featureId": "large-text-mode",
+      "description": "Scalable text for better readability",
+      "textScales": [
+        {
+          "scale": "NORMAL",
+          "multiplier": 1.0
+        },
+        {
+          "scale": "LARGE",
+          "multiplier": 1.25
+        },
+        {
+          "scale": "EXTRA_LARGE",
+          "multiplier": 1.5
+        },
+        {
+          "scale": "MAXIMUM",
+          "multiplier": 2.0
+        }
+      ]
+    }
+  ],
+  "offlineCapabilities": [
+    {
+      "capabilityId": "offline-data-cache",
+      "description": "Cache recent data for offline viewing",
+      "configuration": {
+        "cacheSize": "50MB",
+        "retentionPeriod": "24_HOURS",
+        "syncStrategy": "DIFFERENTIAL_SYNC",
+        "priorityData": [
+          "LAST_1_HOUR_FLIGHTS",
+          "CRITICAL_ALERTS",
+          "KPI_SUMMARIES"
+        ]
+      }
+    },
+    {
+      "capabilityId": "offline-dashboard-access",
+      "description": "Limited dashboard functionality when offline",
+      "features": [
+        "VIEW_CACHED_VISUALIZATIONS",
+        "BASIC_FILTERING",
+        "EXPORT_TO_PDF",
+        "BOOKMARK_VIEWS"
+      ],
+      "limitations": [
+        "NO_REAL_TIME_UPDATES",
+        "LIMITED_DATE_RANGES",
+        "REDUCED_INTERACTIVITY"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1097 @@
+{
+  "info": {
+    "name": "Flight Data Pipeline API",
+    "description": "Comprehensive API collection for the Flight Data Pipeline with authentication, testing scripts, and environment variables.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.flightdata-pipeline.com/v1",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your-api-key-here",
+      "type": "string"
+    },
+    {
+      "key": "test_icao24",
+      "value": "4ca7b4",
+      "type": "string"
+    },
+    {
+      "key": "test_callsign",
+      "value": "SWR123",
+      "type": "string"
+    },
+    {
+      "key": "swiss_lat_min",
+      "value": "45.8389",
+      "type": "string"
+    },
+    {
+      "key": "swiss_lat_max",
+      "value": "47.8229",
+      "type": "string"
+    },
+    {
+      "key": "swiss_lon_min",
+      "value": "5.9962",
+      "type": "string"
+    },
+    {
+      "key": "swiss_lon_max",
+      "value": "10.5226",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "description": "System health and information endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has status field', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('status');",
+                  "});",
+                  "",
+                  "pm.test('Status is healthy', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.be.oneOf(['healthy', 'ok']);",
+                  "});",
+                  "",
+                  "pm.test('Response time is acceptable', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "// Set health status for other tests",
+                  "if (pm.response.code === 200) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.collectionVariables.set('api_healthy', responseJson.status === 'healthy');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check system health status"
+          },
+          "response": []
+        },
+        {
+          "name": "Version Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has version information', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('version');",
+                  "    pm.expect(responseJson).to.have.property('build');",
+                  "    pm.expect(responseJson).to.have.property('environment');",
+                  "});",
+                  "",
+                  "pm.test('Version follows semantic versioning', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    const versionRegex = /^\\d+\\.\\d+\\.\\d+/;",
+                  "    pm.expect(responseJson.version).to.match(versionRegex);",
+                  "});",
+                  "",
+                  "// Store version for later use",
+                  "const responseJson = pm.response.json();",
+                  "pm.collectionVariables.set('api_version', responseJson.version);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/version",
+              "host": ["{{base_url}}"],
+              "path": ["version"]
+            },
+            "description": "Get API version and build information"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Flights",
+      "description": "Flight data retrieval endpoints",
+      "item": [
+        {
+          "name": "Get Flights - Switzerland Bounding Box",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has flights array', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('flights');",
+                  "    pm.expect(responseJson.flights).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response has pagination metadata', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('pagination');",
+                  "    pm.expect(responseJson.pagination).to.have.property('total');",
+                  "    pm.expect(responseJson.pagination).to.have.property('limit');",
+                  "    pm.expect(responseJson.pagination).to.have.property('offset');",
+                  "});",
+                  "",
+                  "pm.test('Flights have required properties', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.flights && responseJson.flights.length > 0) {",
+                  "        const flight = responseJson.flights[0];",
+                  "        pm.expect(flight).to.have.property('icao24');",
+                  "        pm.expect(flight).to.have.property('latitude');",
+                  "        pm.expect(flight).to.have.property('longitude');",
+                  "        pm.expect(flight).to.have.property('timestamp');",
+                  "        ",
+                  "        // Store a sample ICAO24 for other tests",
+                  "        if (flight.icao24) {",
+                  "            pm.collectionVariables.set('sample_icao24', flight.icao24);",
+                  "        }",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Response time is acceptable', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/flights?lamin={{swiss_lat_min}}&lamax={{swiss_lat_max}}&lomin={{swiss_lon_min}}&lomax={{swiss_lon_max}}&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["flights"],
+              "query": [
+                {
+                  "key": "lamin",
+                  "value": "{{swiss_lat_min}}"
+                },
+                {
+                  "key": "lamax",
+                  "value": "{{swiss_lat_max}}"
+                },
+                {
+                  "key": "lomin",
+                  "value": "{{swiss_lon_min}}"
+                },
+                {
+                  "key": "lomax",
+                  "value": "{{swiss_lon_max}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get flights within Switzerland bounding box"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Flight by ICAO24",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200 or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Response has flight data', function () {",
+                  "        const responseJson = pm.response.json();",
+                  "        pm.expect(responseJson).to.have.property('icao24');",
+                  "        pm.expect(responseJson.icao24.toLowerCase()).to.equal(pm.collectionVariables.get('test_icao24'));",
+                  "    });",
+                  "    ",
+                  "    pm.test('Flight has position data', function () {",
+                  "        const responseJson = pm.response.json();",
+                  "        pm.expect(responseJson).to.have.property('latitude');",
+                  "        pm.expect(responseJson).to.have.property('longitude');",
+                  "    });",
+                  "}",
+                  "",
+                  "if (pm.response.code === 404) {",
+                  "    pm.test('404 response has error message', function () {",
+                  "        const responseJson = pm.response.json();",
+                  "        pm.expect(responseJson).to.have.property('error');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/flights/{{test_icao24}}",
+              "host": ["{{base_url}}"],
+              "path": ["flights", "{{test_icao24}}"]
+            },
+            "description": "Get specific flight by ICAO24 address"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Flight History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200 or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Response has history data', function () {",
+                  "        const responseJson = pm.response.json();",
+                  "        pm.expect(responseJson).to.have.property('icao24');",
+                  "        pm.expect(responseJson).to.have.property('history');",
+                  "        pm.expect(responseJson.history).to.be.an('array');",
+                  "    });",
+                  "    ",
+                  "    pm.test('History entries have timestamp', function () {",
+                  "        const responseJson = pm.response.json();",
+                  "        if (responseJson.history && responseJson.history.length > 0) {",
+                  "            pm.expect(responseJson.history[0]).to.have.property('timestamp');",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/flights/{{test_icao24}}/history?start_time={{$timestamp}}&end_time={{$timestamp}}",
+              "host": ["{{base_url}}"],
+              "path": ["flights", "{{test_icao24}}", "history"],
+              "query": [
+                {
+                  "key": "start_time",
+                  "value": "{{$timestamp}}",
+                  "description": "Unix timestamp 24 hours ago"
+                },
+                {
+                  "key": "end_time",
+                  "value": "{{$timestamp}}",
+                  "description": "Current Unix timestamp"
+                }
+              ]
+            },
+            "description": "Get flight history for specific aircraft"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Flights with Filters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Flights match altitude filter', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.flights && responseJson.flights.length > 0) {",
+                  "        responseJson.flights.forEach(flight => {",
+                  "            if (flight.altitude !== null) {",
+                  "                pm.expect(flight.altitude).to.be.at.least(30000);",
+                  "            }",
+                  "        });",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Results respect limit parameter', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.flights.length).to.be.at.most(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/flights?lamin=40&lamax=50&lomin=0&lomax=15&altitude_min=30000&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["flights"],
+              "query": [
+                {
+                  "key": "lamin",
+                  "value": "40"
+                },
+                {
+                  "key": "lamax",
+                  "value": "50"
+                },
+                {
+                  "key": "lomin",
+                  "value": "0"
+                },
+                {
+                  "key": "lomax",
+                  "value": "15"
+                },
+                {
+                  "key": "altitude_min",
+                  "value": "30000"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get flights with altitude and geographic filtering"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Airports",
+      "description": "Airport data and information endpoints",
+      "item": [
+        {
+          "name": "Get Airports",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has airports array', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('airports');",
+                  "    pm.expect(responseJson.airports).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Airports have required properties', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.airports && responseJson.airports.length > 0) {",
+                  "        const airport = responseJson.airports[0];",
+                  "        pm.expect(airport).to.have.property('icao_code');",
+                  "        pm.expect(airport).to.have.property('name');",
+                  "        pm.expect(airport).to.have.property('country');",
+                  "        pm.expect(airport).to.have.property('latitude');",
+                  "        pm.expect(airport).to.have.property('longitude');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Results respect limit parameter', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.airports.length).to.be.at.most(10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/airports?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["airports"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get list of airports with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Airport by Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Airport has correct ICAO code', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.icao_code).to.equal('LSZH');",
+                  "});",
+                  "",
+                  "pm.test('Airport has detailed information', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('name');",
+                  "    pm.expect(responseJson).to.have.property('city');",
+                  "    pm.expect(responseJson).to.have.property('country');",
+                  "    pm.expect(responseJson).to.have.property('runways');",
+                  "});",
+                  "",
+                  "pm.test('Airport runways is an array', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.runways).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/airports/LSZH",
+              "host": ["{{base_url}}"],
+              "path": ["airports", "LSZH"]
+            },
+            "description": "Get Zurich Airport details by ICAO code"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Nearby Airports",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has airports array', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('airports');",
+                  "    pm.expect(responseJson.airports).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Airports have distance information', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.airports && responseJson.airports.length > 0) {",
+                  "        responseJson.airports.forEach(airport => {",
+                  "            pm.expect(airport).to.have.property('distance_km');",
+                  "            pm.expect(airport.distance_km).to.be.a('number');",
+                  "            pm.expect(airport.distance_km).to.be.at.most(50);",
+                  "        });",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Results are sorted by distance', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.airports && responseJson.airports.length > 1) {",
+                  "        for (let i = 1; i < responseJson.airports.length; i++) {",
+                  "            pm.expect(responseJson.airports[i].distance_km).to.be.at.least(responseJson.airports[i-1].distance_km);",
+                  "        }",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/airports/nearby?lat=47.4647&lon=8.5492&radius=50",
+              "host": ["{{base_url}}"],
+              "path": ["airports", "nearby"],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "47.4647",
+                  "description": "Zurich latitude"
+                },
+                {
+                  "key": "lon",
+                  "value": "8.5492",
+                  "description": "Zurich longitude"
+                },
+                {
+                  "key": "radius",
+                  "value": "50",
+                  "description": "Search radius in km"
+                }
+              ]
+            },
+            "description": "Get airports near Zurich within 50km radius"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "description": "Flight analytics and statistics endpoints",
+      "item": [
+        {
+          "name": "Get Flight Statistics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Statistics have required properties', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('total_flights');",
+                  "    pm.expect(responseJson).to.have.property('active_flights');",
+                  "    pm.expect(responseJson).to.have.property('average_altitude');",
+                  "    pm.expect(responseJson).to.have.property('average_velocity');",
+                  "});",
+                  "",
+                  "pm.test('Statistics are valid numbers', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.total_flights).to.be.a('number');",
+                  "    pm.expect(responseJson.active_flights).to.be.a('number');",
+                  "    pm.expect(responseJson.total_flights).to.be.at.least(responseJson.active_flights);",
+                  "});",
+                  "",
+                  "pm.test('Breakdown data is present', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('flights_by_altitude');",
+                  "    pm.expect(responseJson).to.have.property('flights_by_hour');",
+                  "    pm.expect(responseJson.flights_by_altitude).to.be.an('array');",
+                  "    pm.expect(responseJson.flights_by_hour).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/statistics?time_range=24h",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "statistics"],
+              "query": [
+                {
+                  "key": "time_range",
+                  "value": "24h"
+                }
+              ]
+            },
+            "description": "Get flight statistics for the last 24 hours"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Traffic Density",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has density data', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('grid');",
+                  "    pm.expect(responseJson.grid).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Grid cells have required properties', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.grid && responseJson.grid.length > 0) {",
+                  "        const cell = responseJson.grid[0];",
+                  "        pm.expect(cell).to.have.property('lat_min');",
+                  "        pm.expect(cell).to.have.property('lat_max');",
+                  "        pm.expect(cell).to.have.property('lon_min');",
+                  "        pm.expect(cell).to.have.property('lon_max');",
+                  "        pm.expect(cell).to.have.property('flight_count');",
+                  "        pm.expect(cell).to.have.property('density');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Response includes metadata', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('grid_size');",
+                  "    pm.expect(responseJson).to.have.property('total_cells');",
+                  "    pm.expect(responseJson).to.have.property('bounds');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/density?lamin={{swiss_lat_min}}&lamax={{swiss_lat_max}}&lomin={{swiss_lon_min}}&lomax={{swiss_lon_max}}&grid_size=0.5",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "density"],
+              "query": [
+                {
+                  "key": "lamin",
+                  "value": "{{swiss_lat_min}}"
+                },
+                {
+                  "key": "lamax",
+                  "value": "{{swiss_lat_max}}"
+                },
+                {
+                  "key": "lomin",
+                  "value": "{{swiss_lon_min}}"
+                },
+                {
+                  "key": "lomax",
+                  "value": "{{swiss_lon_max}}"
+                },
+                {
+                  "key": "grid_size",
+                  "value": "0.5"
+                }
+              ]
+            },
+            "description": "Get traffic density heatmap for Switzerland"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Popular Routes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 200', function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has routes array', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('routes');",
+                  "    pm.expect(responseJson.routes).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Routes have required properties', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.routes && responseJson.routes.length > 0) {",
+                  "        const route = responseJson.routes[0];",
+                  "        pm.expect(route).to.have.property('origin');",
+                  "        pm.expect(route).to.have.property('destination');",
+                  "        pm.expect(route).to.have.property('flight_count');",
+                  "        pm.expect(route).to.have.property('percentage');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Results respect limit parameter', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.routes.length).to.be.at.most(10);",
+                  "});",
+                  "",
+                  "pm.test('Routes are sorted by flight count', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.routes && responseJson.routes.length > 1) {",
+                  "        for (let i = 1; i < responseJson.routes.length; i++) {",
+                  "            pm.expect(responseJson.routes[i].flight_count).to.be.at.most(responseJson.routes[i-1].flight_count);",
+                  "        }",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/routes?time_range=7d&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "routes"],
+              "query": [
+                {
+                  "key": "time_range",
+                  "value": "7d"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get top 10 popular routes from the last week"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Handling Tests",
+      "description": "Tests for error conditions and edge cases",
+      "item": [
+        {
+          "name": "Unauthorized Request (No API Key)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 401', function () {",
+                  "    pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "",
+                  "pm.test('Error response has proper structure', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('error');",
+                  "    pm.expect(responseJson).to.have.property('message');",
+                  "});",
+                  "",
+                  "pm.test('Error message mentions authentication', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    const message = responseJson.message.toLowerCase();",
+                  "    pm.expect(message).to.include('api');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/flights",
+              "host": ["{{base_url}}"],
+              "path": ["flights"]
+            },
+            "description": "Test authentication error handling"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Parameters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 400', function () {",
+                  "    pm.expect(pm.response.code).to.equal(400);",
+                  "});",
+                  "",
+                  "pm.test('Error response has validation details', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('error');",
+                  "    pm.expect(responseJson).to.have.property('details');",
+                  "    pm.expect(responseJson.details).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Error mentions invalid latitude', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    const errorText = JSON.stringify(responseJson).toLowerCase();",
+                  "    pm.expect(errorText).to.include('latitude');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/flights?lamin=200&lamax=300",
+              "host": ["{{base_url}}"],
+              "path": ["flights"],
+              "query": [
+                {
+                  "key": "lamin",
+                  "value": "200",
+                  "description": "Invalid latitude (max is 90)"
+                },
+                {
+                  "key": "lamax",
+                  "value": "300",
+                  "description": "Invalid latitude (max is 90)"
+                }
+              ]
+            },
+            "description": "Test validation error handling with invalid coordinates"
+          },
+          "response": []
+        },
+        {
+          "name": "Resource Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status code is 404', function () {",
+                  "    pm.expect(pm.response.code).to.equal(404);",
+                  "});",
+                  "",
+                  "pm.test('Error response has proper structure', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson).to.have.property('error');",
+                  "    pm.expect(responseJson).to.have.property('message');",
+                  "});",
+                  "",
+                  "pm.test('Error message mentions not found', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    const message = responseJson.message.toLowerCase();",
+                  "    pm.expect(message).to.include('not found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/flights/nonexistent123",
+              "host": ["{{base_url}}"],
+              "path": ["flights", "nonexistent123"]
+            },
+            "description": "Test 404 error handling for non-existent flight"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "id": "global-prerequest",
+        "exec": [
+          "// Set dynamic timestamps for history queries",
+          "const now = Math.floor(Date.now() / 1000);",
+          "const dayAgo = now - (24 * 60 * 60);",
+          "",
+          "pm.variables.set('current_timestamp', now);",
+          "pm.variables.set('timestamp_24h_ago', dayAgo);",
+          "",
+          "// Log current request for debugging",
+          "console.log(`Making request to: ${pm.request.url}`);",
+          "",
+          "// Check if API key is properly set",
+          "const apiKey = pm.collectionVariables.get('api_key');",
+          "if (!apiKey || apiKey === 'your-api-key-here') {",
+          "    console.warn('⚠️ API key not properly configured. Update the api_key collection variable.');",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "id": "global-test",
+        "exec": [
+          "// Global test script that runs after every request",
+          "",
+          "// Log response info",
+          "console.log(`Response: ${pm.response.code} ${pm.response.status}`);",
+          "console.log(`Response time: ${pm.response.responseTime}ms`);",
+          "",
+          "// Check for rate limiting headers",
+          "const rateLimitRemaining = pm.response.headers.get('X-RateLimit-Remaining');",
+          "const rateLimitReset = pm.response.headers.get('X-RateLimit-Reset');",
+          "",
+          "if (rateLimitRemaining) {",
+          "    console.log(`Rate limit remaining: ${rateLimitRemaining}`);",
+          "    pm.collectionVariables.set('rate_limit_remaining', rateLimitRemaining);",
+          "}",
+          "",
+          "if (rateLimitReset) {",
+          "    const resetTime = new Date(parseInt(rateLimitReset) * 1000);",
+          "    console.log(`Rate limit resets at: ${resetTime.toISOString()}`);",
+          "}",
+          "",
+          "// Global response time check",
+          "pm.test('Global: Response time is reasonable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(30000);",
+          "});",
+          "",
+          "// Global content type check (for successful responses)",
+          "if (pm.response.code < 300) {",
+          "    pm.test('Global: Content-Type is application/json', function () {",
+          "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "    });",
+          "}",
+          "",
+          "// Check for required security headers",
+          "pm.test('Global: Security headers present', function () {",
+          "    pm.expect(pm.response.headers.has('X-Content-Type-Options')).to.be.true;",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

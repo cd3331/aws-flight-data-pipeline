@@ -1,0 +1,390 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["AWS/ApiGateway", "Count", "ApiName", "flight-data-api-prod", {"stat": "Sum"}],
+          [".", ".", ".", "flight-data-api-staging", {"stat": "Sum"}],
+          [".", ".", ".", "flight-data-api-dev", {"stat": "Sum"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "📊 API Request Volume",
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "stat": "Sum",
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Target: 10M requests/month",
+              "value": 463
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "MonthlyRecurringRevenue", {"stat": "Average"}],
+          [".", "NewCustomerRevenue", {"stat": "Sum"}],
+          [".", "ChurnedRevenue", {"stat": "Sum", "yAxis": "right"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 86400,
+        "title": "💰 Revenue Metrics (Monthly)",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Revenue ($)"
+          },
+          "right": {
+            "min": 0,
+            "label": "Churn ($)"
+          }
+        },
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "number",
+      "x": 0,
+      "y": 6,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["AWS/ApiGateway", "Count", "ApiName", "flight-data-api-prod"]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "period": 86400,
+        "stat": "Sum",
+        "title": "🔢 Daily API Requests",
+        "sparkline": true,
+        "trend": true
+      }
+    },
+    {
+      "type": "number",
+      "x": 6,
+      "y": 6,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "ActiveUsers"]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "period": 86400,
+        "stat": "Average",
+        "title": "👥 Active Users (Daily)",
+        "sparkline": true,
+        "trend": true
+      }
+    },
+    {
+      "type": "number",
+      "x": 12,
+      "y": 6,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "MonthlyRecurringRevenue"]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "period": 86400,
+        "stat": "Average",
+        "title": "💵 Monthly Recurring Revenue",
+        "sparkline": true,
+        "trend": true
+      }
+    },
+    {
+      "type": "number",
+      "x": 18,
+      "y": 6,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "CustomerSatisfactionScore"]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "period": 86400,
+        "stat": "Average",
+        "title": "⭐ Customer Satisfaction",
+        "sparkline": true,
+        "trend": true,
+        "setPeriodToTimeRange": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 12,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["AWS/Billing", "EstimatedCharges", "Currency", "USD", "ServiceName", "AmazonDynamoDB"],
+          [".", ".", ".", ".", ".", "AWSLambda"],
+          [".", ".", ".", ".", ".", "AmazonS3"],
+          [".", ".", ".", ".", ".", "AmazonAPIGateway"],
+          [".", ".", ".", ".", ".", "AmazonElastiCache"]
+        ],
+        "view": "timeSeries",
+        "stacked": true,
+        "region": "us-east-1",
+        "period": 86400,
+        "title": "💸 Daily AWS Costs by Service",
+        "yAxis": {
+          "left": {
+            "min": 0
+          }
+        },
+        "stat": "Maximum",
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Monthly Budget: $15,000",
+              "value": 500
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 12,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataVolumeIngested", {"stat": "Sum"}],
+          [".", "DataVolumeProcessed", {"stat": "Sum"}],
+          [".", "DataVolumeServed", {"stat": "Sum"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 3600,
+        "title": "📈 Data Volume Trends (GB/Hour)",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Gigabytes"
+          }
+        },
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 18,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["AWS/ApiGateway", "Latency", "ApiName", "flight-data-api-prod", {"stat": "Average"}],
+          [".", ".", ".", ".", {"stat": "p95"}],
+          [".", ".", ".", ".", {"stat": "p99"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "⚡ API Response Times",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Milliseconds"
+          }
+        },
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "SLA Target: 500ms",
+              "value": 500
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 18,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["AWS/ApiGateway", "4XXError", "ApiName", "flight-data-api-prod", {"stat": "Sum"}],
+          [".", "5XXError", ".", ".", {"stat": "Sum"}],
+          ["FlightDataPipeline", "SystemAvailability", {"yAxis": "right", "stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "🚨 System Health & Availability",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Error Count"
+          },
+          "right": {
+            "min": 99,
+            "max": 100,
+            "label": "Availability %"
+          }
+        },
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Target: 99.9% Uptime",
+              "value": 99.9,
+              "yAxis": "right"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 18,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "CustomerAcquisitionCost", {"stat": "Average"}],
+          [".", "CustomerLifetimeValue", {"stat": "Average"}],
+          [".", "ChurnRate", {"yAxis": "right", "stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 86400,
+        "title": "📊 Customer Metrics",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Dollar Value"
+          },
+          "right": {
+            "min": 0,
+            "max": 10,
+            "label": "Churn Rate %"
+          }
+        }
+      }
+    },
+    {
+      "type": "log",
+      "x": 0,
+      "y": 24,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE '/aws/lambda/flight-data-fetcher-prod'\n| SOURCE '/aws/lambda/flight-data-processor-prod'\n| SOURCE '/aws/lambda/flight-api-prod'\n| fields @timestamp, @message\n| filter @message like /ERROR/ or @message like /CRITICAL/\n| sort @timestamp desc\n| limit 50",
+        "region": "us-east-1",
+        "title": "🔍 Recent Critical Events",
+        "view": "table"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 30,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "MarketShare", {"stat": "Average"}],
+          [".", "CompetitorAComparison", {"stat": "Average"}],
+          [".", "CompetitorBComparison", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 86400,
+        "title": "🏆 Market Position",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 100,
+            "label": "Market Share %"
+          }
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 30,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "FeatureAdoptionRate", "Feature", "RealTimeAPI", {"stat": "Average"}],
+          [".", ".", ".", "HistoricalData", {"stat": "Average"}],
+          [".", ".", ".", "Analytics", {"stat": "Average"}],
+          [".", ".", ".", "BulkExport", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 86400,
+        "title": "🚀 Feature Adoption Rates",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 100,
+            "label": "Adoption %"
+          }
+        }
+      }
+    }
+  ],
+  "annotations": {
+    "horizontal": [],
+    "vertical": []
+  },
+  "yAxis": {
+    "left": {
+      "min": 0
+    }
+  },
+  "period": 300,
+  "stat": "Average",
+  "region": "us-east-1",
+  "title": "🎯 Flight Data Pipeline - Executive Dashboard",
+  "start": "-PT24H",
+  "end": "PT0H",
+  "liveData": true,
+  "timezone": "UTC"
+}

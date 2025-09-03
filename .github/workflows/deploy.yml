@@ -1,0 +1,714 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches: [ develop, main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      force_deploy:
+        description: 'Force deployment even if CI checks failed'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  TERRAFORM_VERSION: '1.5.7'
+  PYTHON_VERSION: '3.11'
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  # Determine deployment environment and validate prerequisites
+  determine-environment:
+    name: Determine Deployment Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      should_deploy: ${{ steps.env.outputs.should_deploy }}
+      requires_approval: ${{ steps.env.outputs.requires_approval }}
+    
+    steps:
+    - name: Determine environment from branch or input
+      id: env
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          ENV="${{ github.event.inputs.environment }}"
+        elif [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+          ENV="dev"
+        elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          ENV="staging"
+        else
+          ENV="none"
+        fi
+        
+        echo "environment=$ENV" >> $GITHUB_OUTPUT
+        
+        # Determine if deployment should proceed
+        if [ "$ENV" == "none" ]; then
+          echo "should_deploy=false" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+        else
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+        fi
+        
+        # Production requires manual approval
+        if [ "$ENV" == "production" ]; then
+          echo "requires_approval=true" >> $GITHUB_OUTPUT
+        else
+          echo "requires_approval=false" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "🎯 Deployment Environment: $ENV"
+        echo "🚀 Should Deploy: $([ "$ENV" != "none" ] && echo "true" || echo "false")"
+        echo "🔐 Requires Approval: $([ "$ENV" == "production" ] && echo "true" || echo "false")"
+
+  # Pre-deployment validation
+  pre-deployment-checks:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    needs: [determine-environment]
+    if: needs.determine-environment.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check CI status
+      if: github.event.inputs.force_deploy != 'true'
+      run: |
+        echo "Checking CI pipeline status..."
+        
+        # Get the latest CI workflow run for this commit
+        CI_STATUS=$(gh api repos/${{ github.repository }}/actions/workflows/ci.yml/runs \
+          --jq ".workflow_runs[] | select(.head_sha == \"${{ github.sha }}\") | .conclusion" \
+          | head -n 1)
+        
+        if [ "$CI_STATUS" != "success" ] && [ "$CI_STATUS" != "" ]; then
+          echo "❌ CI pipeline did not pass successfully. Status: $CI_STATUS"
+          echo "Use force_deploy option to override this check."
+          exit 1
+        elif [ "$CI_STATUS" == "" ]; then
+          echo "⚠️  No CI run found for this commit. Proceeding with caution."
+        else
+          echo "✅ CI pipeline passed successfully"
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Validate deployment artifacts
+      run: |
+        echo "Validating deployment artifacts..."
+        
+        # Check for required files
+        required_files=(
+          "infrastructure/main.tf"
+          "infrastructure/environments/${{ needs.determine-environment.outputs.environment }}.tfvars"
+          "lambda/"
+          "requirements.txt"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [ ! -e "$file" ]; then
+            echo "❌ Required file/directory missing: $file"
+            exit 1
+          else
+            echo "✅ Found: $file"
+          fi
+        done
+
+    - name: Check for breaking changes
+      run: |
+        echo "Checking for breaking changes..."
+        
+        # Check if this is a major version bump or has breaking change markers
+        if git log --oneline ${{ github.sha }}~10..${{ github.sha }} | grep -i "BREAKING\|major:" > /dev/null; then
+          echo "⚠️  Breaking changes detected in recent commits"
+          echo "Please ensure proper communication and rollback plans are in place"
+        else
+          echo "✅ No obvious breaking changes detected"
+        fi
+
+  # Infrastructure deployment
+  terraform-deploy:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: [determine-environment, pre-deployment-checks]
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    if: needs.determine-environment.outputs.should_deploy == 'true'
+    
+    outputs:
+      lambda_bucket: ${{ steps.outputs.outputs.lambda_bucket }}
+      api_gateway_url: ${{ steps.outputs.outputs.api_gateway_url }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+        terraform_wrapper: false
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Terraform Init
+      run: |
+        cd infrastructure/
+        terraform init \
+          -backend-config="bucket=${{ secrets.TERRAFORM_STATE_BUCKET }}" \
+          -backend-config="key=flightdata-pipeline/${{ needs.determine-environment.outputs.environment }}/terraform.tfstate" \
+          -backend-config="region=${{ env.AWS_REGION }}"
+
+    - name: Terraform Plan
+      id: plan
+      run: |
+        cd infrastructure/
+        terraform plan \
+          -var-file="environments/${{ needs.determine-environment.outputs.environment }}.tfvars" \
+          -var="git_commit_sha=${{ github.sha }}" \
+          -var="deployment_timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          -out=tfplan \
+          -detailed-exitcode || true
+        
+        PLAN_EXIT_CODE=$?
+        echo "plan_exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
+        
+        # Exit codes: 0 = no changes, 1 = error, 2 = changes present
+        if [ $PLAN_EXIT_CODE -eq 1 ]; then
+          echo "❌ Terraform plan failed"
+          exit 1
+        elif [ $PLAN_EXIT_CODE -eq 2 ]; then
+          echo "📋 Infrastructure changes detected"
+        else
+          echo "✅ No infrastructure changes needed"
+        fi
+
+    - name: Terraform Apply
+      if: steps.plan.outputs.plan_exit_code == '2'
+      run: |
+        cd infrastructure/
+        echo "Applying infrastructure changes..."
+        terraform apply -auto-approve tfplan
+        
+        echo "✅ Infrastructure deployment completed"
+
+    - name: Extract Terraform Outputs
+      id: outputs
+      run: |
+        cd infrastructure/
+        
+        # Get important outputs for later jobs
+        LAMBDA_BUCKET=$(terraform output -raw lambda_deployment_bucket 2>/dev/null || echo "")
+        API_GATEWAY_URL=$(terraform output -raw api_gateway_url 2>/dev/null || echo "")
+        
+        echo "lambda_bucket=$LAMBDA_BUCKET" >> $GITHUB_OUTPUT
+        echo "api_gateway_url=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
+        
+        echo "🪣 Lambda Bucket: $LAMBDA_BUCKET"
+        echo "🌐 API Gateway URL: $API_GATEWAY_URL"
+
+    - name: Save Terraform State Info
+      run: |
+        cd infrastructure/
+        echo "Saving deployment metadata..."
+        
+        cat > deployment-metadata.json << EOF
+        {
+          "environment": "${{ needs.determine-environment.outputs.environment }}",
+          "commit_sha": "${{ github.sha }}",
+          "deployment_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "terraform_outputs": $(terraform output -json 2>/dev/null || echo '{}'),
+          "deployer": "${{ github.actor }}",
+          "workflow_run": "${{ github.run_id }}"
+        }
+        EOF
+        
+        # Store metadata in S3 for rollback purposes
+        aws s3 cp deployment-metadata.json \
+          "s3://${{ secrets.TERRAFORM_STATE_BUCKET }}/flightdata-pipeline/${{ needs.determine-environment.outputs.environment }}/deployments/$(date +%Y%m%d-%H%M%S)-${{ github.sha }}.json"
+
+  # Lambda deployment
+  lambda-deploy:
+    name: Deploy Lambda Functions
+    runs-on: ubuntu-latest
+    needs: [determine-environment, terraform-deploy]
+    if: needs.determine-environment.outputs.should_deploy == 'true'
+    
+    strategy:
+      matrix:
+        function: [processor, api-handler, aggregator, scheduler]
+      fail-fast: false
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Build Lambda package
+      id: build
+      run: |
+        FUNCTION_DIR="lambda/flightdata-${{ matrix.function }}"
+        
+        if [ ! -d "$FUNCTION_DIR" ]; then
+          echo "❌ Function directory not found: $FUNCTION_DIR"
+          exit 1
+        fi
+        
+        echo "Building Lambda package for ${{ matrix.function }}..."
+        
+        # Create build directory
+        BUILD_DIR="build/flightdata-${{ matrix.function }}"
+        mkdir -p "$BUILD_DIR"
+        
+        # Copy function code
+        cp -r "$FUNCTION_DIR"/* "$BUILD_DIR/"
+        
+        # Install dependencies if requirements.txt exists
+        if [ -f "$BUILD_DIR/requirements.txt" ]; then
+          echo "Installing dependencies..."
+          pip install -r "$BUILD_DIR/requirements.txt" -t "$BUILD_DIR/" --no-deps
+        fi
+        
+        # Remove unnecessary files
+        find "$BUILD_DIR" -name "*.pyc" -delete
+        find "$BUILD_DIR" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+        find "$BUILD_DIR" -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+        find "$BUILD_DIR" -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
+        
+        # Create ZIP package
+        cd "$BUILD_DIR"
+        PACKAGE_FILE="../flightdata-${{ matrix.function }}.zip"
+        zip -r "$PACKAGE_FILE" . -q
+        cd - > /dev/null
+        
+        # Check package size
+        PACKAGE_SIZE=$(stat -c%s "build/flightdata-${{ matrix.function }}.zip")
+        MAX_SIZE=$((50 * 1024 * 1024))  # 50MB
+        
+        if [ $PACKAGE_SIZE -gt $MAX_SIZE ]; then
+          echo "❌ Package too large: $PACKAGE_SIZE bytes (max: $MAX_SIZE)"
+          exit 1
+        fi
+        
+        echo "✅ Package created: $PACKAGE_SIZE bytes"
+        echo "package_path=build/flightdata-${{ matrix.function }}.zip" >> $GITHUB_OUTPUT
+        echo "package_size=$PACKAGE_SIZE" >> $GITHUB_OUTPUT
+
+    - name: Deploy to Lambda
+      run: |
+        FUNCTION_NAME="flightdata-${{ matrix.function }}-${{ needs.determine-environment.outputs.environment }}"
+        PACKAGE_PATH="${{ steps.build.outputs.package_path }}"
+        
+        echo "Deploying ${{ matrix.function }} to Lambda function: $FUNCTION_NAME"
+        
+        # Create version backup before deployment
+        echo "Creating backup version..."
+        BACKUP_VERSION=$(aws lambda publish-version \
+          --function-name "$FUNCTION_NAME" \
+          --description "Backup before deployment $(date -u +%Y-%m-%d_%H:%M:%S)" \
+          --query 'Version' --output text 2>/dev/null || echo "")
+        
+        if [ -n "$BACKUP_VERSION" ] && [ "$BACKUP_VERSION" != "None" ]; then
+          echo "✅ Backup version created: $BACKUP_VERSION"
+          echo "backup_version=$BACKUP_VERSION" >> $GITHUB_ENV
+        fi
+        
+        # Update function code
+        echo "Updating function code..."
+        aws lambda update-function-code \
+          --function-name "$FUNCTION_NAME" \
+          --zip-file "fileb://$PACKAGE_PATH" \
+          --publish > /dev/null
+        
+        # Wait for update to complete
+        echo "Waiting for function update to complete..."
+        aws lambda wait function-updated \
+          --function-name "$FUNCTION_NAME"
+        
+        # Get the new version
+        NEW_VERSION=$(aws lambda get-function \
+          --function-name "$FUNCTION_NAME" \
+          --query 'Configuration.Version' --output text)
+        
+        echo "✅ Function deployed successfully"
+        echo "   Function: $FUNCTION_NAME"
+        echo "   New Version: $NEW_VERSION"
+        echo "   Backup Version: ${BACKUP_VERSION:-'N/A'}"
+        echo "   Package Size: ${{ steps.build.outputs.package_size }} bytes"
+
+    - name: Update function configuration
+      run: |
+        FUNCTION_NAME="flightdata-${{ matrix.function }}-${{ needs.determine-environment.outputs.environment }}"
+        
+        echo "Updating function configuration..."
+        
+        # Set environment variables based on deployment environment
+        ENV_VARS="Variables={"
+        ENV_VARS+="ENVIRONMENT=${{ needs.determine-environment.outputs.environment }},"
+        ENV_VARS+="DEPLOYMENT_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ),"
+        ENV_VARS+="GIT_COMMIT=${{ github.sha }},"
+        ENV_VARS+="WORKFLOW_RUN=${{ github.run_id }}"
+        ENV_VARS+="}"
+        
+        aws lambda update-function-configuration \
+          --function-name "$FUNCTION_NAME" \
+          --environment "$ENV_VARS" \
+          --timeout 300 \
+          --memory-size 512 > /dev/null
+        
+        echo "✅ Function configuration updated"
+
+    - name: Test function deployment
+      run: |
+        FUNCTION_NAME="flightdata-${{ matrix.function }}-${{ needs.determine-environment.outputs.environment }}"
+        
+        echo "Testing deployed function..."
+        
+        # Create test payload based on function type
+        case "${{ matrix.function }}" in
+          "api-handler")
+            TEST_PAYLOAD='{"httpMethod":"GET","path":"/health","headers":{}}'
+            ;;
+          "processor"|"aggregator"|"scheduler")
+            TEST_PAYLOAD='{"test":true,"source":"deployment-validation"}'
+            ;;
+          *)
+            TEST_PAYLOAD='{}'
+            ;;
+        esac
+        
+        # Test function invocation
+        echo "Invoking function with test payload..."
+        INVOKE_RESULT=$(aws lambda invoke \
+          --function-name "$FUNCTION_NAME" \
+          --payload "$TEST_PAYLOAD" \
+          --log-type Tail \
+          /tmp/response.json \
+          --query 'StatusCode' --output text)
+        
+        if [ "$INVOKE_RESULT" = "200" ]; then
+          echo "✅ Function test invocation successful"
+          
+          # Show response if it's the API handler
+          if [ "${{ matrix.function }}" = "api-handler" ]; then
+            echo "Response:"
+            cat /tmp/response.json
+          fi
+        else
+          echo "❌ Function test invocation failed (Status: $INVOKE_RESULT)"
+          echo "Response:"
+          cat /tmp/response.json
+          exit 1
+        fi
+
+  # Database migrations (if needed)
+  database-migrations:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: [determine-environment, terraform-deploy]
+    if: needs.determine-environment.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Check for pending migrations
+      id: check_migrations
+      run: |
+        echo "Checking for database schema migrations..."
+        
+        # Check if migrations directory exists and has files
+        if [ -d "migrations/" ] && [ "$(ls -A migrations/)" ]; then
+          echo "has_migrations=true" >> $GITHUB_OUTPUT
+          echo "📋 Migrations found:"
+          ls -la migrations/
+        else
+          echo "has_migrations=false" >> $GITHUB_OUTPUT
+          echo "✅ No migrations to run"
+        fi
+
+    - name: Run migrations
+      if: steps.check_migrations.outputs.has_migrations == 'true'
+      run: |
+        echo "Running database migrations..."
+        
+        # Install migration tools
+        pip install boto3
+        
+        # Run migration script
+        python scripts/run_migrations.py \
+          --environment "${{ needs.determine-environment.outputs.environment }}" \
+          --region "${{ env.AWS_REGION }}"
+        
+        echo "✅ Database migrations completed"
+
+  # Post-deployment smoke tests
+  smoke-tests:
+    name: Post-deployment Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [determine-environment, terraform-deploy, lambda-deploy, database-migrations]
+    if: always() && needs.determine-environment.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Install test dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest requests
+
+    - name: Wait for deployment to stabilize
+      run: |
+        echo "Waiting for deployment to stabilize..."
+        sleep 30
+
+    - name: Run API smoke tests
+      id: api_tests
+      run: |
+        echo "Running API smoke tests..."
+        
+        # Get API Gateway URL from Terraform outputs
+        API_URL="${{ needs.terraform-deploy.outputs.api_gateway_url }}"
+        
+        if [ -z "$API_URL" ] || [ "$API_URL" = "null" ]; then
+          echo "⚠️  API Gateway URL not available, skipping API tests"
+          echo "api_tests_status=skipped" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        echo "Testing API endpoint: $API_URL"
+        
+        # Test health endpoint
+        echo "Testing health endpoint..."
+        HEALTH_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/health_response "$API_URL/health" 2>/dev/null || echo "000")
+        HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | tail -c 3)
+        
+        if [ "$HEALTH_STATUS" = "200" ]; then
+          echo "✅ Health endpoint responding correctly"
+          echo "Response: $(cat /tmp/health_response)"
+          echo "api_tests_status=passed" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Health endpoint failed (Status: $HEALTH_STATUS)"
+          echo "api_tests_status=failed" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+    - name: Run Lambda smoke tests
+      id: lambda_tests
+      run: |
+        echo "Running Lambda function smoke tests..."
+        
+        ENV="${{ needs.determine-environment.outputs.environment }}"
+        FUNCTIONS=("processor" "aggregator" "scheduler")
+        FAILED_FUNCTIONS=()
+        
+        for func in "${FUNCTIONS[@]}"; do
+          FUNCTION_NAME="flightdata-$func-$ENV"
+          echo "Testing function: $FUNCTION_NAME"
+          
+          # Test function invocation
+          RESULT=$(aws lambda invoke \
+            --function-name "$FUNCTION_NAME" \
+            --payload '{"test":true,"source":"smoke-test"}' \
+            /tmp/smoke_test_response.json \
+            --query 'StatusCode' --output text 2>/dev/null || echo "failed")
+          
+          if [ "$RESULT" = "200" ]; then
+            echo "✅ $FUNCTION_NAME responding correctly"
+          else
+            echo "❌ $FUNCTION_NAME test failed"
+            FAILED_FUNCTIONS+=("$FUNCTION_NAME")
+          fi
+        done
+        
+        if [ ${#FAILED_FUNCTIONS[@]} -eq 0 ]; then
+          echo "lambda_tests_status=passed" >> $GITHUB_OUTPUT
+        else
+          echo "lambda_tests_status=failed" >> $GITHUB_OUTPUT
+          echo "Failed functions: ${FAILED_FUNCTIONS[*]}"
+          exit 1
+        fi
+
+    - name: Run data pipeline smoke tests
+      id: pipeline_tests
+      run: |
+        echo "Running data pipeline smoke tests..."
+        
+        ENV="${{ needs.determine-environment.outputs.environment }}"
+        
+        # Check S3 buckets accessibility
+        echo "Testing S3 bucket access..."
+        BUCKET_NAME="flightdata-raw-$ENV"
+        
+        if aws s3 ls "s3://$BUCKET_NAME/" > /dev/null 2>&1; then
+          echo "✅ S3 bucket accessible: $BUCKET_NAME"
+        else
+          echo "❌ S3 bucket not accessible: $BUCKET_NAME"
+          echo "pipeline_tests_status=failed" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        # Check DynamoDB table accessibility
+        echo "Testing DynamoDB table access..."
+        TABLE_NAME="flightdata-main-$ENV"
+        
+        if aws dynamodb describe-table --table-name "$TABLE_NAME" > /dev/null 2>&1; then
+          echo "✅ DynamoDB table accessible: $TABLE_NAME"
+        else
+          echo "❌ DynamoDB table not accessible: $TABLE_NAME"
+          echo "pipeline_tests_status=failed" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        echo "pipeline_tests_status=passed" >> $GITHUB_OUTPUT
+
+    - name: Smoke test summary
+      run: |
+        echo "=== Smoke Test Summary ==="
+        echo "API Tests: ${{ steps.api_tests.outputs.api_tests_status || 'not_run' }}"
+        echo "Lambda Tests: ${{ steps.lambda_tests.outputs.lambda_tests_status || 'not_run' }}"
+        echo "Pipeline Tests: ${{ steps.pipeline_tests.outputs.pipeline_tests_status || 'not_run' }}"
+        
+        # Check if any tests failed
+        if [[ "${{ steps.api_tests.outputs.api_tests_status }}" == "failed" ]] || \
+           [[ "${{ steps.lambda_tests.outputs.lambda_tests_status }}" == "failed" ]] || \
+           [[ "${{ steps.pipeline_tests.outputs.pipeline_tests_status }}" == "failed" ]]; then
+          echo "❌ Smoke tests failed - deployment may need rollback"
+          exit 1
+        else
+          echo "✅ All smoke tests passed successfully"
+        fi
+
+  # Production deployment approval
+  production-approval:
+    name: Production Deployment Approval
+    runs-on: ubuntu-latest
+    needs: [determine-environment, smoke-tests]
+    if: needs.determine-environment.outputs.environment == 'production' && needs.determine-environment.outputs.requires_approval == 'true'
+    environment: production-approval
+    
+    steps:
+    - name: Request production deployment approval
+      run: |
+        echo "🚀 Production deployment requested"
+        echo "Environment: production"
+        echo "Commit: ${{ github.sha }}"
+        echo "Author: ${{ github.actor }}"
+        echo ""
+        echo "Pre-deployment checks completed successfully:"
+        echo "✅ Infrastructure deployment"
+        echo "✅ Lambda function deployments"
+        echo "✅ Smoke tests"
+        echo ""
+        echo "Waiting for manual approval to proceed..."
+
+  # Final deployment status
+  deployment-status:
+    name: Deployment Status
+    runs-on: ubuntu-latest
+    needs: [determine-environment, terraform-deploy, lambda-deploy, smoke-tests, production-approval]
+    if: always() && needs.determine-environment.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: Deployment success notification
+      if: needs.smoke-tests.result == 'success' && (needs.production-approval.result == 'success' || needs.production-approval.result == 'skipped')
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo "Environment: ${{ needs.determine-environment.outputs.environment }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Deployed by: ${{ github.actor }}"
+        echo "Time: $(date -u +%Y-%m-%d_%H:%M:%S)"
+
+    - name: Send success notification to Slack
+      if: needs.smoke-tests.result == 'success' && (needs.production-approval.result == 'success' || needs.production-approval.result == 'skipped')
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        channel: '#flightdata-deployments'
+        message: |
+          🚀 Deployment Successful!
+          Environment: ${{ needs.determine-environment.outputs.environment }}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Deployed by: ${{ github.actor }}
+          
+          API URL: ${{ needs.terraform-deploy.outputs.api_gateway_url }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Deployment failure notification
+      if: failure()
+      run: |
+        echo "❌ Deployment failed!"
+        echo "Environment: ${{ needs.determine-environment.outputs.environment }}"
+        echo "Check the workflow logs for details"
+        
+        # Trigger rollback workflow
+        echo "Consider triggering rollback procedure"
+
+    - name: Send failure notification to Slack
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        channel: '#flightdata-alerts'
+        message: |
+          🚨 Deployment Failed!
+          Environment: ${{ needs.determine-environment.outputs.environment }}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Failed by: ${{ github.actor }}
+          
+          Check the workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          
+          Consider running rollback procedure.
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

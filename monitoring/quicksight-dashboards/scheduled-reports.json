@@ -1,0 +1,517 @@
+{
+  "scheduledReports": [
+    {
+      "reportId": "executive-daily-summary",
+      "reportName": "Flight Data Executive Daily Summary",
+      "description": "Daily executive summary report with key performance indicators and business metrics",
+      "reportType": "DASHBOARD",
+      "sourceConfiguration": {
+        "dashboardId": "flight-tracking-dashboard",
+        "sheets": ["executive-overview"],
+        "parameterOverrides": {
+          "date_range_param": "YESTERDAY",
+          "region_filter_param": ["ALL"],
+          "data_quality_threshold_param": 95
+        }
+      },
+      "schedule": {
+        "scheduleFrequency": "DAILY",
+        "scheduleExpression": "cron(0 8 * * ? *)",
+        "timezone": "UTC",
+        "startDate": "2024-01-01T00:00:00Z",
+        "endDate": null
+      },
+      "deliveryConfiguration": {
+        "format": "PDF",
+        "recipients": [
+          {
+            "email": "ceo@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "cto@flightdata.com", 
+            "role": "CC"
+          },
+          {
+            "email": "operations-manager@flightdata.com",
+            "role": "CC"
+          }
+        ],
+        "subject": "📊 Flight Data Daily Executive Summary - {{date}}",
+        "body": "Please find attached the daily executive summary report for flight data operations as of {{date}}. This report includes key performance indicators, system health metrics, and business insights.\n\nKey highlights:\n- Total flights processed: {{flight_count}}\n- System availability: {{availability_percentage}}%\n- Data quality score: {{data_quality_score}}%\n\nFor detailed analysis, please access the full dashboard at: {{dashboard_url}}\n\nBest regards,\nFlight Data Analytics Team"
+      },
+      "reportOptions": {
+        "includeFilters": true,
+        "includeTitlePage": true,
+        "pageOrientation": "LANDSCAPE",
+        "pageSize": "A4",
+        "marginConfiguration": {
+          "top": "1in",
+          "bottom": "1in",
+          "left": "0.5in",
+          "right": "0.5in"
+        }
+      }
+    },
+    {
+      "reportId": "technical-operations-hourly",
+      "reportName": "Technical Operations Hourly Report",
+      "description": "Hourly technical operations report for system monitoring and alerts",
+      "reportType": "DASHBOARD",
+      "sourceConfiguration": {
+        "dashboardId": "performance-analytics-dashboard",
+        "sheets": ["technical-metrics"],
+        "parameterOverrides": {
+          "date_range_param": "LAST_HOUR",
+          "refresh_frequency_param": "REAL_TIME",
+          "data_quality_threshold_param": 90
+        }
+      },
+      "schedule": {
+        "scheduleFrequency": "HOURLY", 
+        "scheduleExpression": "cron(0 * * * ? *)",
+        "timezone": "UTC",
+        "startDate": "2024-01-01T00:00:00Z",
+        "endDate": null
+      },
+      "deliveryConfiguration": {
+        "format": "PDF",
+        "recipients": [
+          {
+            "email": "devops-team@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "sre-oncall@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "engineering-leads@flightdata.com",
+            "role": "CC"
+          }
+        ],
+        "subject": "⚙️ Technical Operations Hourly Report - {{hour}}:00 UTC",
+        "body": "Hourly technical operations report for {{date}} at {{hour}}:00 UTC.\n\nSystem Status Overview:\n- Lambda function performance: {{lambda_performance}}\n- Error rates: {{error_rate}}%\n- Queue depths: {{queue_depth}}\n- Data processing latency: {{processing_latency}}ms\n\n🚨 Alerts: {{alert_count}} active alerts\n✅ Health Checks: {{health_check_status}}\n\nDashboard: {{dashboard_url}}\n\nAutomated Technical Monitoring System"
+      },
+      "reportOptions": {
+        "includeFilters": true,
+        "includeTitlePage": false,
+        "pageOrientation": "PORTRAIT",
+        "pageSize": "A4",
+        "conditionalDelivery": {
+          "enabled": true,
+          "conditions": [
+            {
+              "metric": "error_rate",
+              "operator": "GREATER_THAN",
+              "threshold": 1.0,
+              "action": "SEND_IMMEDIATELY"
+            },
+            {
+              "metric": "queue_depth",
+              "operator": "GREATER_THAN",
+              "threshold": 1000,
+              "action": "SEND_IMMEDIATELY"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reportId": "data-quality-weekly-analysis",
+      "reportName": "Data Quality Weekly Analysis Report",
+      "description": "Comprehensive weekly data quality analysis and trends",
+      "reportType": "DASHBOARD",
+      "sourceConfiguration": {
+        "dashboardId": "data-quality-monitoring-dashboard",
+        "sheets": ["quality-overview", "quality-trends"],
+        "parameterOverrides": {
+          "date_range_param": "LAST_7_DAYS",
+          "data_quality_threshold_param": 85
+        }
+      },
+      "schedule": {
+        "scheduleFrequency": "WEEKLY",
+        "scheduleExpression": "cron(0 9 ? * MON *)",
+        "timezone": "UTC",
+        "startDate": "2024-01-01T00:00:00Z",
+        "endDate": null
+      },
+      "deliveryConfiguration": {
+        "format": "PDF",
+        "recipients": [
+          {
+            "email": "data-engineering@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "data-analysts@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "quality-assurance@flightdata.com",
+            "role": "CC"
+          },
+          {
+            "email": "product-managers@flightdata.com",
+            "role": "CC"
+          }
+        ],
+        "subject": "📊 Weekly Data Quality Analysis Report - Week of {{week_start_date}}",
+        "body": "Weekly data quality analysis report for the week of {{week_start_date}} to {{week_end_date}}.\n\n📈 Key Quality Metrics:\n- Overall quality score: {{overall_quality_score}}%\n- Data completeness: {{completeness_percentage}}%\n- Anomalies detected: {{anomaly_count}}\n- Validation failures: {{validation_failures}}\n\n🔍 Quality Trends:\n- Week-over-week improvement: {{quality_trend}}%\n- Critical issues resolved: {{issues_resolved}}\n- New quality rules implemented: {{new_rules_count}}\n\n🎯 Recommendations:\n{{quality_recommendations}}\n\nDetailed analysis: {{dashboard_url}}\n\nData Quality Engineering Team"
+      },
+      "reportOptions": {
+        "includeFilters": true,
+        "includeTitlePage": true,
+        "pageOrientation": "LANDSCAPE",
+        "pageSize": "A4",
+        "includeExecutiveSummary": true,
+        "includeDataTables": true
+      }
+    },
+    {
+      "reportId": "performance-monthly-deep-dive",
+      "reportName": "Monthly Performance Deep Dive Report",
+      "description": "Comprehensive monthly performance analysis with trends and forecasts",
+      "reportType": "DASHBOARD",
+      "sourceConfiguration": {
+        "dashboardId": "performance-analytics-dashboard",
+        "sheets": ["performance-overview", "trend-analysis", "forecasting"],
+        "parameterOverrides": {
+          "date_range_param": "LAST_30_DAYS",
+          "region_filter_param": ["ALL"],
+          "aircraft_category_param": ["ALL"]
+        }
+      },
+      "schedule": {
+        "scheduleFrequency": "MONTHLY",
+        "scheduleExpression": "cron(0 10 1 * ? *)",
+        "timezone": "UTC",
+        "startDate": "2024-01-01T00:00:00Z",
+        "endDate": null
+      },
+      "deliveryConfiguration": {
+        "format": "PDF",
+        "recipients": [
+          {
+            "email": "executive-team@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "product-team@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "engineering-leadership@flightdata.com",
+            "role": "CC"
+          },
+          {
+            "email": "business-intelligence@flightdata.com",
+            "role": "CC"
+          }
+        ],
+        "subject": "📈 Monthly Performance Deep Dive Report - {{month}} {{year}}",
+        "body": "Monthly performance analysis report for {{month}} {{year}}.\n\n🎯 Performance Highlights:\n- Total flights processed: {{monthly_flight_count:,}}\n- Average processing latency: {{avg_latency}}ms\n- System uptime: {{uptime_percentage}}%\n- Peak concurrent flights: {{peak_flights:,}}\n\n📊 Key Insights:\n- Month-over-month growth: {{growth_percentage}}%\n- Regional performance variations: {{regional_insights}}\n- Efficiency improvements: {{efficiency_gains}}%\n\n🔮 Forecasts:\n- Next month projected volume: {{forecast_volume:,}} flights\n- Capacity recommendations: {{capacity_recommendations}}\n- Infrastructure scaling needs: {{scaling_recommendations}}\n\nFull report attached. Interactive dashboard: {{dashboard_url}}\n\nBusiness Intelligence Team"
+      },
+      "reportOptions": {
+        "includeFilters": true,
+        "includeTitlePage": true,
+        "pageOrientation": "LANDSCAPE",
+        "pageSize": "A3",
+        "includeExecutiveSummary": true,
+        "includeDataTables": true,
+        "includeAppendix": true,
+        "customSections": [
+          {
+            "sectionName": "Regional Analysis",
+            "includeCharts": true,
+            "includeMetrics": true
+          },
+          {
+            "sectionName": "Capacity Planning",
+            "includeProjections": true,
+            "includeRecommendations": true
+          }
+        ]
+      }
+    },
+    {
+      "reportId": "real-time-alerts-digest",
+      "reportName": "Real-Time Alerts Digest",
+      "description": "Immediate alerts for critical system events and anomalies",
+      "reportType": "ALERT_DIGEST",
+      "sourceConfiguration": {
+        "alertSources": [
+          "system-health-alerts",
+          "data-quality-alerts", 
+          "performance-degradation-alerts",
+          "anomaly-detection-alerts"
+        ],
+        "parameterOverrides": {
+          "severity_threshold": "HIGH",
+          "time_window": "LAST_15_MINUTES"
+        }
+      },
+      "schedule": {
+        "scheduleFrequency": "CONTINUOUS",
+        "triggerConditions": [
+          {
+            "condition": "alert_count > 0",
+            "cooldownPeriod": "5_MINUTES"
+          }
+        ],
+        "timezone": "UTC"
+      },
+      "deliveryConfiguration": {
+        "format": "EMAIL",
+        "recipients": [
+          {
+            "email": "critical-alerts@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "oncall-engineer@flightdata.com",
+            "role": "PRIMARY"
+          }
+        ],
+        "subject": "🚨 CRITICAL ALERT: {{alert_type}} - {{severity}}",
+        "body": "CRITICAL SYSTEM ALERT\n\nAlert Type: {{alert_type}}\nSeverity: {{severity}}\nTime: {{timestamp}}\nDuration: {{duration}}\n\nDescription: {{alert_description}}\n\nAffected Components: {{affected_components}}\n\nImmediate Actions Required:\n{{recommended_actions}}\n\nDashboard: {{dashboard_url}}\nRunbook: {{runbook_url}}\n\nAutomated Alert System",
+        "escalationRules": [
+          {
+            "condition": "no_acknowledgment_after_5_minutes",
+            "action": "escalate_to_manager"
+          },
+          {
+            "condition": "no_acknowledgment_after_15_minutes", 
+            "action": "escalate_to_executive"
+          }
+        ]
+      },
+      "reportOptions": {
+        "includeMetrics": true,
+        "includeTimeline": true,
+        "includeRunbooks": true,
+        "includeContactInfo": true
+      }
+    },
+    {
+      "reportId": "business-insights-quarterly",
+      "reportName": "Quarterly Business Insights Report",
+      "description": "Comprehensive quarterly business analysis with strategic insights",
+      "reportType": "BUSINESS_ANALYSIS",
+      "sourceConfiguration": {
+        "dashboardIds": [
+          "flight-tracking-dashboard",
+          "performance-analytics-dashboard",
+          "data-quality-monitoring-dashboard"
+        ],
+        "analysisTypes": [
+          "trend_analysis",
+          "seasonality_patterns",
+          "market_insights",
+          "competitive_analysis",
+          "roi_analysis"
+        ],
+        "parameterOverrides": {
+          "date_range_param": "LAST_90_DAYS",
+          "comparison_period": "PREVIOUS_QUARTER"
+        }
+      },
+      "schedule": {
+        "scheduleFrequency": "QUARTERLY",
+        "scheduleExpression": "cron(0 14 1 1,4,7,10 ? *)",
+        "timezone": "UTC",
+        "startDate": "2024-01-01T00:00:00Z",
+        "endDate": null
+      },
+      "deliveryConfiguration": {
+        "format": "PDF",
+        "recipients": [
+          {
+            "email": "board-of-directors@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "c-suite@flightdata.com",
+            "role": "PRIMARY"
+          },
+          {
+            "email": "investors@flightdata.com",
+            "role": "CC"
+          },
+          {
+            "email": "strategic-partners@flightdata.com",
+            "role": "BCC"
+          }
+        ],
+        "subject": "📊 Q{{quarter}} {{year}} Business Insights Report - Flight Data Analytics",
+        "body": "Quarterly Business Insights Report for Q{{quarter}} {{year}}\n\n🎯 Executive Summary:\nThis comprehensive report provides strategic insights into our flight data analytics platform performance, market position, and business outcomes for Q{{quarter}} {{year}}.\n\n📈 Key Business Metrics:\n- Revenue growth: {{revenue_growth}}% QoQ\n- Customer acquisition: {{new_customers}} new customers\n- Platform usage: {{usage_metrics}}\n- Market share: {{market_share_percentage}}%\n\n💡 Strategic Insights:\n{{strategic_insights}}\n\n🔮 Forward-Looking Statements:\n{{future_outlook}}\n\nThis report contains confidential and proprietary information. Please review the full analysis in the attached document.\n\nBoard Relations Team"
+      },
+      "reportOptions": {
+        "includeFilters": false,
+        "includeTitlePage": true,
+        "pageOrientation": "PORTRAIT",
+        "pageSize": "LETTER",
+        "includeExecutiveSummary": true,
+        "includeDataTables": false,
+        "includeAppendix": true,
+        "customBranding": true,
+        "confidentialityLevel": "CONFIDENTIAL",
+        "customSections": [
+          {
+            "sectionName": "Market Analysis",
+            "includeCompetitorData": true,
+            "includeTrendAnalysis": true
+          },
+          {
+            "sectionName": "Financial Performance",
+            "includeRevenueAnalysis": true,
+            "includeCostAnalysis": true,
+            "includeROIAnalysis": true
+          },
+          {
+            "sectionName": "Strategic Recommendations",
+            "includeActionItems": true,
+            "includeTimelines": true,
+            "includeResourceRequirements": true
+          }
+        ]
+      }
+    }
+  ],
+  "reportTemplates": [
+    {
+      "templateId": "standard-executive-template",
+      "templateName": "Standard Executive Report Template",
+      "description": "Professional template for executive-level reports",
+      "templateConfiguration": {
+        "headerConfiguration": {
+          "includeCompanyLogo": true,
+          "includeReportTitle": true,
+          "includeGenerationDate": true,
+          "includePageNumbers": true
+        },
+        "footerConfiguration": {
+          "includeConfidentialityNotice": true,
+          "includeContactInformation": true,
+          "includeDisclaimer": true
+        },
+        "styleConfiguration": {
+          "colorScheme": "PROFESSIONAL_BLUE",
+          "fontFamily": "ARIAL",
+          "fontSize": "10pt",
+          "lineSpacing": "1.15"
+        }
+      }
+    },
+    {
+      "templateId": "technical-operations-template",
+      "templateName": "Technical Operations Report Template", 
+      "description": "Compact template for technical and operational reports",
+      "templateConfiguration": {
+        "headerConfiguration": {
+          "includeCompanyLogo": false,
+          "includeReportTitle": true,
+          "includeGenerationDate": true,
+          "includePageNumbers": false
+        },
+        "footerConfiguration": {
+          "includeConfidentialityNotice": false,
+          "includeContactInformation": false,
+          "includeDisclaimer": false
+        },
+        "styleConfiguration": {
+          "colorScheme": "TECHNICAL_GRAY",
+          "fontFamily": "COURIER",
+          "fontSize": "9pt",
+          "lineSpacing": "1.0"
+        }
+      }
+    }
+  ],
+  "distributionLists": [
+    {
+      "listId": "executive-team",
+      "listName": "Executive Team",
+      "description": "C-level executives and senior leadership",
+      "members": [
+        "ceo@flightdata.com",
+        "cto@flightdata.com", 
+        "cfo@flightdata.com",
+        "coo@flightdata.com"
+      ]
+    },
+    {
+      "listId": "technical-team",
+      "listName": "Technical Team",
+      "description": "Engineering, DevOps, and technical staff",
+      "members": [
+        "engineering-team@flightdata.com",
+        "devops-team@flightdata.com",
+        "sre-team@flightdata.com",
+        "data-engineering@flightdata.com"
+      ]
+    },
+    {
+      "listId": "business-stakeholders",
+      "listName": "Business Stakeholders",
+      "description": "Product, business intelligence, and analytics teams",
+      "members": [
+        "product-team@flightdata.com",
+        "business-intelligence@flightdata.com",
+        "data-analysts@flightdata.com",
+        "customer-success@flightdata.com"
+      ]
+    }
+  ],
+  "reportingCalendar": {
+    "scheduledReports": [
+      {
+        "reportId": "executive-daily-summary",
+        "frequency": "DAILY",
+        "time": "08:00 UTC",
+        "daysOfWeek": ["MON", "TUE", "WED", "THU", "FRI"]
+      },
+      {
+        "reportId": "technical-operations-hourly",
+        "frequency": "HOURLY",
+        "time": "00:00 UTC",
+        "daysOfWeek": ["ALL"]
+      },
+      {
+        "reportId": "data-quality-weekly-analysis",
+        "frequency": "WEEKLY", 
+        "time": "09:00 UTC",
+        "daysOfWeek": ["MON"]
+      },
+      {
+        "reportId": "performance-monthly-deep-dive",
+        "frequency": "MONTHLY",
+        "time": "10:00 UTC",
+        "dayOfMonth": 1
+      },
+      {
+        "reportId": "business-insights-quarterly",
+        "frequency": "QUARTERLY",
+        "time": "14:00 UTC",
+        "months": ["JAN", "APR", "JUL", "OCT"],
+        "dayOfMonth": 1
+      }
+    ]
+  },
+  "archivalPolicy": {
+    "retentionPeriods": {
+      "executive-reports": "7_YEARS",
+      "technical-reports": "2_YEARS",
+      "data-quality-reports": "3_YEARS",
+      "alert-digests": "1_YEAR",
+      "business-insights": "10_YEARS"
+    },
+    "storageConfiguration": {
+      "primaryStorage": "S3_INTELLIGENT_TIERING",
+      "archiveStorage": "S3_GLACIER_DEEP_ARCHIVE",
+      "encryptionEnabled": true,
+      "compressionEnabled": true
+    }
+  }
+}

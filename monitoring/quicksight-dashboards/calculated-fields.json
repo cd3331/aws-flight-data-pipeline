@@ -1,0 +1,351 @@
+{
+  "calculatedFields": [
+    {
+      "name": "Flight Count",
+      "fieldId": "flight_count",
+      "expression": "count({icao24})",
+      "dataType": "INTEGER",
+      "description": "Total number of flights"
+    },
+    {
+      "name": "Active Flights",
+      "fieldId": "active_flights",
+      "expression": "countIf({on_ground} = false)",
+      "dataType": "INTEGER", 
+      "description": "Number of flights currently airborne"
+    },
+    {
+      "name": "Average Altitude",
+      "fieldId": "avg_altitude",
+      "expression": "avg({altitude_ft})",
+      "dataType": "DECIMAL",
+      "description": "Average altitude in feet for airborne flights"
+    },
+    {
+      "name": "Average Speed",
+      "fieldId": "avg_speed",
+      "expression": "avg({speed_knots})",
+      "dataType": "DECIMAL",
+      "description": "Average speed in knots"
+    },
+    {
+      "name": "Max Altitude",
+      "fieldId": "max_altitude",
+      "expression": "max({altitude_ft})",
+      "dataType": "DECIMAL",
+      "description": "Maximum altitude recorded"
+    },
+    {
+      "name": "Min Altitude",
+      "fieldId": "min_altitude",
+      "expression": "min({altitude_ft})",
+      "dataType": "DECIMAL",
+      "description": "Minimum altitude recorded for airborne flights"
+    },
+    {
+      "name": "Speed Percentile 95",
+      "fieldId": "speed_p95",
+      "expression": "percentile({speed_knots}, 95)",
+      "dataType": "DECIMAL",
+      "description": "95th percentile speed"
+    },
+    {
+      "name": "Altitude Standard Deviation",
+      "fieldId": "altitude_stddev",
+      "expression": "stdev({altitude_ft})",
+      "dataType": "DECIMAL",
+      "description": "Standard deviation of altitude"
+    },
+    {
+      "name": "Traffic Density",
+      "fieldId": "traffic_density",
+      "expression": "count({icao24}) / nullif(distinctCount(concat(toString(round({latitude}, 1)), '-', toString(round({longitude}, 1)))), 0)",
+      "dataType": "DECIMAL",
+      "description": "Average flights per geographic grid cell (0.1 degree resolution)"
+    },
+    {
+      "name": "Climb Rate Category",
+      "fieldId": "climb_rate_category",
+      "expression": "ifelse({vertical_rate} > 1000, 'Rapid Climb', ifelse({vertical_rate} > 500, 'Moderate Climb', ifelse({vertical_rate} > -500, 'Level Flight', ifelse({vertical_rate} > -1000, 'Moderate Descent', 'Rapid Descent'))))",
+      "dataType": "STRING",
+      "description": "Categorized climb/descent rate"
+    },
+    {
+      "name": "Distance from Origin",
+      "fieldId": "distance_from_origin",
+      "expression": "ifelse(isNotNull({origin_latitude}) AND isNotNull({origin_longitude}), 6371 * acos(cos(radians({latitude})) * cos(radians({origin_latitude})) * cos(radians({origin_longitude}) - radians({longitude})) + sin(radians({latitude})) * sin(radians({origin_latitude}))), null)",
+      "dataType": "DECIMAL",
+      "description": "Great circle distance from origin airport in kilometers"
+    },
+    {
+      "name": "Flight Duration Hours",
+      "fieldId": "flight_duration_hours",
+      "expression": "ifelse(isNotNull({departure_time}), ({time_position} - {departure_time}) / 3600, null)",
+      "dataType": "DECIMAL",
+      "description": "Flight duration in hours since departure"
+    },
+    {
+      "name": "Mach Number Estimate",
+      "fieldId": "mach_number",
+      "expression": "ifelse({altitude_ft} > 20000, {speed_knots} / (661.47 * sqrt(1 - 0.0065 * {altitude_ft} * 0.3048 / 288.15)), null)",
+      "dataType": "DECIMAL",
+      "description": "Estimated Mach number for high-altitude flights"
+    },
+    {
+      "name": "Aircraft Type Category",
+      "fieldId": "aircraft_category",
+      "expression": "ifelse(contains({callsign}, 'DLH') OR contains({callsign}, 'LH'), 'Lufthansa Group', ifelse(contains({callsign}, 'BAW') OR contains({callsign}, 'BA'), 'British Airways', ifelse(contains({callsign}, 'AFR') OR contains({callsign}, 'AF'), 'Air France', ifelse(contains({callsign}, 'UAL') OR contains({callsign}, 'UA'), 'United Airlines', 'Other'))))",
+      "dataType": "STRING",
+      "description": "Airline categorization based on callsign"
+    },
+    {
+      "name": "Ground Speed Efficiency",
+      "fieldId": "speed_efficiency",
+      "expression": "ifelse({speed_knots} > 0, {speed_knots} / nullif({altitude_ft} / 1000, 0), null)",
+      "dataType": "DECIMAL",
+      "description": "Speed relative to altitude (efficiency metric)"
+    },
+    {
+      "name": "Position Update Freshness",
+      "fieldId": "position_freshness",
+      "expression": "{last_contact} - {time_position}",
+      "dataType": "INTEGER",
+      "description": "Seconds since last position update"
+    },
+    {
+      "name": "Data Quality Score",
+      "fieldId": "data_quality",
+      "expression": "100 * (ifelse(isNotNull({latitude}), 1, 0) + ifelse(isNotNull({longitude}), 1, 0) + ifelse(isNotNull({altitude_ft}) AND {altitude_ft} > 0, 1, 0) + ifelse(isNotNull({speed_knots}) AND {speed_knots} >= 0, 1, 0) + ifelse(isNotNull({callsign}) AND {callsign} != '', 1, 0)) / 5",
+      "dataType": "DECIMAL",
+      "description": "Data completeness score as percentage"
+    },
+    {
+      "name": "Peak Traffic Hours",
+      "fieldId": "is_peak_hour",
+      "expression": "ifelse({hour} >= 8 AND {hour} <= 22, 1, 0)",
+      "dataType": "INTEGER",
+      "description": "1 if during peak traffic hours (8 AM - 10 PM UTC), 0 otherwise"
+    },
+    {
+      "name": "Transcontinental Flight",
+      "fieldId": "is_transcontinental",
+      "expression": "ifelse({speed_knots} > 400 AND {altitude_ft} > 35000, 1, 0)",
+      "dataType": "INTEGER",
+      "description": "1 if likely transcontinental flight (high speed and altitude), 0 otherwise"
+    },
+    {
+      "name": "Regional Classification",
+      "fieldId": "detailed_region",
+      "expression": "ifelse({longitude} >= -125 AND {longitude} <= -95 AND {latitude} >= 30 AND {latitude} <= 50, 'US Central', ifelse({longitude} >= -95 AND {longitude} <= -70 AND {latitude} >= 30 AND {latitude} <= 50, 'US Eastern', ifelse({longitude} >= -10 AND {longitude} <= 15 AND {latitude} >= 35 AND {latitude} <= 60, 'Western Europe', ifelse({longitude} >= 15 AND {longitude} <= 40 AND {latitude} >= 35 AND {latitude} <= 60, 'Eastern Europe', ifelse({longitude} >= 100 AND {longitude} <= 130 AND {latitude} >= 10 AND {latitude} <= 40, 'East Asia', 'Other Region')))))",
+      "dataType": "STRING",
+      "description": "Detailed regional classification"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "Date Range",
+      "parameterId": "date_range_param",
+      "dataType": "DATETIME",
+      "defaultValue": "LAST_30_DAYS",
+      "description": "Date range filter for analysis",
+      "selectAllValueOptions": "ALL_VALUES",
+      "multiValueOption": "SINGLE_VALUED"
+    },
+    {
+      "name": "Altitude Range",
+      "parameterId": "altitude_range_param", 
+      "dataType": "INTEGER",
+      "defaultValue": "0,50000",
+      "description": "Altitude range filter in feet",
+      "selectAllValueOptions": "ALL_VALUES",
+      "multiValueOption": "MULTI_VALUED"
+    },
+    {
+      "name": "Speed Range",
+      "parameterId": "speed_range_param",
+      "dataType": "INTEGER", 
+      "defaultValue": "0,800",
+      "description": "Speed range filter in knots",
+      "selectAllValueOptions": "ALL_VALUES",
+      "multiValueOption": "MULTI_VALUED"
+    },
+    {
+      "name": "Region Filter",
+      "parameterId": "region_filter_param",
+      "dataType": "STRING",
+      "defaultValue": "ALL",
+      "description": "Geographic region filter",
+      "selectAllValueOptions": "ALL_VALUES",
+      "multiValueOption": "MULTI_VALUED",
+      "staticOptions": [
+        "North America",
+        "Europe", 
+        "Asia Pacific",
+        "South America",
+        "Other"
+      ]
+    },
+    {
+      "name": "Flight Phase Filter",
+      "parameterId": "flight_phase_param",
+      "dataType": "STRING",
+      "defaultValue": "ALL",
+      "description": "Flight phase filter",
+      "selectAllValueOptions": "ALL_VALUES",
+      "multiValueOption": "MULTI_VALUED",
+      "staticOptions": [
+        "Ground",
+        "Climbing",
+        "Cruise",
+        "Descending",
+        "In-Transit"
+      ]
+    },
+    {
+      "name": "Aircraft Category",
+      "parameterId": "aircraft_category_param",
+      "dataType": "STRING",
+      "defaultValue": "ALL",
+      "description": "Aircraft/airline category filter",
+      "selectAllValueOptions": "ALL_VALUES",
+      "multiValueOption": "MULTI_VALUED",
+      "staticOptions": [
+        "Lufthansa Group",
+        "British Airways",
+        "Air France",
+        "United Airlines",
+        "Other"
+      ]
+    },
+    {
+      "name": "Time of Day",
+      "parameterId": "time_of_day_param",
+      "dataType": "STRING",
+      "defaultValue": "ALL",
+      "description": "Time of day filter",
+      "selectAllValueOptions": "ALL_VALUES", 
+      "multiValueOption": "MULTI_VALUED",
+      "staticOptions": [
+        "Morning",
+        "Afternoon", 
+        "Evening",
+        "Night"
+      ]
+    },
+    {
+      "name": "Data Quality Threshold",
+      "parameterId": "data_quality_threshold_param",
+      "dataType": "DECIMAL",
+      "defaultValue": "80.0",
+      "description": "Minimum data quality score threshold",
+      "selectAllValueOptions": "ALL_VALUES",
+      "multiValueOption": "SINGLE_VALUED"
+    },
+    {
+      "name": "Refresh Frequency",
+      "parameterId": "refresh_frequency_param",
+      "dataType": "STRING",
+      "defaultValue": "HOURLY",
+      "description": "Data refresh frequency",
+      "selectAllValueOptions": "ALL_VALUES",
+      "multiValueOption": "SINGLE_VALUED",
+      "staticOptions": [
+        "REAL_TIME",
+        "HOURLY",
+        "DAILY",
+        "WEEKLY"
+      ]
+    }
+  ],
+  "filters": [
+    {
+      "filterId": "valid_coordinates_filter",
+      "name": "Valid Coordinates",
+      "operandField": {
+        "fieldId": "latitude"
+      },
+      "filterType": "NUMERIC_RANGE_FILTER",
+      "numericRangeFilter": {
+        "includeMinimum": true,
+        "includeMaximum": true,
+        "rangeMinimum": {
+          "constant": -90
+        },
+        "rangeMaximum": {
+          "constant": 90
+        }
+      },
+      "description": "Filter for valid latitude coordinates"
+    },
+    {
+      "filterId": "valid_longitude_filter",
+      "name": "Valid Longitude",
+      "operandField": {
+        "fieldId": "longitude"
+      },
+      "filterType": "NUMERIC_RANGE_FILTER",
+      "numericRangeFilter": {
+        "includeMinimum": true,
+        "includeMaximum": true,
+        "rangeMinimum": {
+          "constant": -180
+        },
+        "rangeMaximum": {
+          "constant": 180
+        }
+      },
+      "description": "Filter for valid longitude coordinates"
+    },
+    {
+      "filterId": "airborne_flights_filter",
+      "name": "Airborne Flights Only", 
+      "operandField": {
+        "fieldId": "on_ground"
+      },
+      "filterType": "CATEGORY_FILTER",
+      "categoryFilter": {
+        "matchOperator": "EQUALS",
+        "categoryValues": [false]
+      },
+      "description": "Filter to show only airborne flights"
+    },
+    {
+      "filterId": "recent_data_filter",
+      "name": "Recent Data",
+      "operandField": {
+        "fieldId": "position_freshness"
+      },
+      "filterType": "NUMERIC_RANGE_FILTER",
+      "numericRangeFilter": {
+        "includeMinimum": true,
+        "includeMaximum": true,
+        "rangeMinimum": {
+          "constant": 0
+        },
+        "rangeMaximum": {
+          "constant": 300
+        }
+      },
+      "description": "Filter for data updated within last 5 minutes"
+    },
+    {
+      "filterId": "quality_threshold_filter",
+      "name": "Data Quality Threshold",
+      "operandField": {
+        "fieldId": "data_quality"
+      },
+      "filterType": "NUMERIC_RANGE_FILTER",
+      "numericRangeFilter": {
+        "includeMinimum": true,
+        "includeMaximum": true,
+        "rangeMinimum": {
+          "parameter": "data_quality_threshold_param"
+        },
+        "rangeMaximum": {
+          "constant": 100
+        }
+      },
+      "description": "Filter based on data quality score threshold"
+    }
+  ]
+}

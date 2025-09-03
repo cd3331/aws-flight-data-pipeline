@@ -1,0 +1,354 @@
+{
+  "dataSources": [
+    {
+      "dataSourceId": "flight-data-athena-source",
+      "name": "Flight Data Analytics - Athena",
+      "type": "ATHENA",
+      "dataSourceParameters": {
+        "athenaParameters": {
+          "workGroup": "flight-data-analytics",
+          "roleToAssume": "arn:aws:iam::123456789012:role/QuickSightAthenaRole",
+          "s3OutputLocation": "s3://flightdata-athena-results-prod/quicksight/"
+        }
+      },
+      "permissions": [
+        {
+          "principal": "arn:aws:quicksight:us-east-1:123456789012:user/default/flight-data-admin",
+          "actions": [
+            "quicksight:DescribeDataSource",
+            "quicksight:DescribeDataSourcePermissions",
+            "quicksight:PassDataSource",
+            "quicksight:UpdateDataSource",
+            "quicksight:DeleteDataSource",
+            "quicksight:UpdateDataSourcePermissions"
+          ]
+        }
+      ],
+      "sslProperties": {
+        "disableSsl": false
+      }
+    },
+    {
+      "dataSourceId": "flight-data-s3-source",
+      "name": "Flight Data Raw - S3",
+      "type": "S3",
+      "dataSourceParameters": {
+        "s3Parameters": {
+          "manifestFileLocation": {
+            "bucket": "flightdata-storage-prod",
+            "key": "quicksight-manifests/flight-data-manifest.json"
+          },
+          "roleToAssume": "arn:aws:iam::123456789012:role/QuickSightS3Role"
+        }
+      },
+      "permissions": [
+        {
+          "principal": "arn:aws:quicksight:us-east-1:123456789012:user/default/flight-data-admin",
+          "actions": [
+            "quicksight:DescribeDataSource",
+            "quicksight:DescribeDataSourcePermissions",
+            "quicksight:PassDataSource",
+            "quicksight:UpdateDataSource",
+            "quicksight:DeleteDataSource",
+            "quicksight:UpdateDataSourcePermissions"
+          ]
+        }
+      ]
+    }
+  ],
+  "dataSets": [
+    {
+      "dataSetId": "flight-positions-dataset",
+      "name": "Flight Positions",
+      "physicalTableMap": {
+        "flights_table": {
+          "relationalTable": {
+            "dataSourceArn": "arn:aws:quicksight:us-east-1:123456789012:datasource/flight-data-athena-source",
+            "catalog": "AwsDataCatalog",
+            "schema": "flightdata",
+            "name": "flights",
+            "inputColumns": [
+              {
+                "name": "icao24",
+                "type": "STRING"
+              },
+              {
+                "name": "callsign",
+                "type": "STRING"
+              },
+              {
+                "name": "origin_country",
+                "type": "STRING"
+              },
+              {
+                "name": "time_position",
+                "type": "INTEGER"
+              },
+              {
+                "name": "last_contact",
+                "type": "INTEGER"
+              },
+              {
+                "name": "longitude",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "latitude",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "baro_altitude",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "on_ground",
+                "type": "BOOLEAN"
+              },
+              {
+                "name": "velocity",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "true_track",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "vertical_rate",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "geo_altitude",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "squawk",
+                "type": "STRING"
+              },
+              {
+                "name": "spi",
+                "type": "BOOLEAN"
+              },
+              {
+                "name": "position_source",
+                "type": "INTEGER"
+              },
+              {
+                "name": "year",
+                "type": "INTEGER"
+              },
+              {
+                "name": "month",
+                "type": "INTEGER"
+              },
+              {
+                "name": "day",
+                "type": "INTEGER"
+              },
+              {
+                "name": "hour",
+                "type": "INTEGER"
+              }
+            ]
+          }
+        }
+      },
+      "logicalTableMap": {
+        "flights_logical": {
+          "alias": "Flights",
+          "dataTransforms": [
+            {
+              "createColumnsOperation": {
+                "columns": [
+                  {
+                    "columnName": "timestamp",
+                    "columnId": "timestamp_calc",
+                    "expression": "fromUnixTime({time_position})"
+                  },
+                  {
+                    "columnName": "altitude_ft",
+                    "columnId": "altitude_ft_calc", 
+                    "expression": "ifelse(isNull({baro_altitude}), {geo_altitude} * 3.28084, {baro_altitude} * 3.28084)"
+                  },
+                  {
+                    "columnName": "speed_knots",
+                    "columnId": "speed_knots_calc",
+                    "expression": "ifelse(isNull({velocity}), 0, {velocity} * 1.94384)"
+                  },
+                  {
+                    "columnName": "altitude_band",
+                    "columnId": "altitude_band_calc",
+                    "expression": "ifelse({altitude_ft} < 10000, 'Low (0-10k ft)', ifelse({altitude_ft} < 30000, 'Medium (10k-30k ft)', ifelse({altitude_ft} < 50000, 'High (30k-50k ft)', 'Very High (50k+ ft)')))"
+                  },
+                  {
+                    "columnName": "speed_category",
+                    "columnId": "speed_category_calc",
+                    "expression": "ifelse({speed_knots} < 150, 'Slow (0-150 kts)', ifelse({speed_knots} < 400, 'Normal (150-400 kts)', ifelse({speed_knots} < 600, 'Fast (400-600 kts)', 'Very Fast (600+ kts)')))"
+                  },
+                  {
+                    "columnName": "flight_phase",
+                    "columnId": "flight_phase_calc",
+                    "expression": "ifelse({on_ground}, 'Ground', ifelse({altitude_ft} < 10000 AND {vertical_rate} > 500, 'Climbing', ifelse({altitude_ft} < 10000 AND {vertical_rate} < -500, 'Descending', ifelse({altitude_ft} > 30000, 'Cruise', 'In-Transit'))))"
+                  },
+                  {
+                    "columnName": "region",
+                    "columnId": "region_calc",
+                    "expression": "ifelse({longitude} >= -125 AND {longitude} <= -70 AND {latitude} >= 25 AND {latitude} <= 50, 'North America', ifelse({longitude} >= -10 AND {longitude} <= 40 AND {latitude} >= 35 AND {latitude} <= 70, 'Europe', ifelse({longitude} >= 100 AND {longitude} <= 150 AND {latitude} >= -10 AND {latitude} <= 40, 'Asia Pacific', ifelse({longitude} >= -80 AND {longitude} <= -30 AND {latitude} >= -60 AND {latitude} <= 15, 'South America', 'Other'))))"
+                  },
+                  {
+                    "columnName": "time_of_day",
+                    "columnId": "time_of_day_calc",
+                    "expression": "ifelse({hour} >= 6 AND {hour} < 12, 'Morning', ifelse({hour} >= 12 AND {hour} < 18, 'Afternoon', ifelse({hour} >= 18 AND {hour} < 24, 'Evening', 'Night')))"
+                  }
+                ]
+              }
+            },
+            {
+              "filterOperation": {
+                "conditionExpression": "isNotNull({latitude}) AND isNotNull({longitude}) AND {latitude} >= -90 AND {latitude} <= 90 AND {longitude} >= -180 AND {longitude} <= 180"
+              }
+            }
+          ],
+          "source": "flights_table"
+        }
+      },
+      "importMode": "SPICE",
+      "permissions": [
+        {
+          "principal": "arn:aws:quicksight:us-east-1:123456789012:user/default/flight-data-admin",
+          "actions": [
+            "quicksight:DescribeDataSet",
+            "quicksight:DescribeDataSetPermissions",
+            "quicksight:PassDataSet",
+            "quicksight:DescribeIngestion",
+            "quicksight:ListIngestions",
+            "quicksight:UpdateDataSet",
+            "quicksight:DeleteDataSet",
+            "quicksight:CreateIngestion",
+            "quicksight:CancelIngestion",
+            "quicksight:UpdateDataSetPermissions"
+          ]
+        }
+      ]
+    },
+    {
+      "dataSetId": "airport-data-dataset",
+      "name": "Airport Data",
+      "physicalTableMap": {
+        "airports_table": {
+          "relationalTable": {
+            "dataSourceArn": "arn:aws:quicksight:us-east-1:123456789012:datasource/flight-data-athena-source",
+            "catalog": "AwsDataCatalog",
+            "schema": "flightdata",
+            "name": "airports",
+            "inputColumns": [
+              {
+                "name": "icao_code",
+                "type": "STRING"
+              },
+              {
+                "name": "iata_code", 
+                "type": "STRING"
+              },
+              {
+                "name": "name",
+                "type": "STRING"
+              },
+              {
+                "name": "city",
+                "type": "STRING"
+              },
+              {
+                "name": "country",
+                "type": "STRING"
+              },
+              {
+                "name": "latitude",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "longitude",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "altitude_m",
+                "type": "DECIMAL"
+              },
+              {
+                "name": "type",
+                "type": "STRING"
+              },
+              {
+                "name": "scheduled_service",
+                "type": "BOOLEAN"
+              }
+            ]
+          }
+        }
+      },
+      "logicalTableMap": {
+        "airports_logical": {
+          "alias": "Airports",
+          "dataTransforms": [
+            {
+              "createColumnsOperation": {
+                "columns": [
+                  {
+                    "columnName": "altitude_ft",
+                    "columnId": "airport_altitude_ft",
+                    "expression": "{altitude_m} * 3.28084"
+                  },
+                  {
+                    "columnName": "airport_size",
+                    "columnId": "airport_size_calc",
+                    "expression": "ifelse({type} = 'large_airport', 'Large', ifelse({type} = 'medium_airport', 'Medium', ifelse({type} = 'small_airport', 'Small', 'Other')))"
+                  }
+                ]
+              }
+            }
+          ],
+          "source": "airports_table"
+        }
+      },
+      "importMode": "SPICE",
+      "permissions": [
+        {
+          "principal": "arn:aws:quicksight:us-east-1:123456789012:user/default/flight-data-admin",
+          "actions": [
+            "quicksight:DescribeDataSet",
+            "quicksight:DescribeDataSetPermissions",
+            "quicksight:PassDataSet",
+            "quicksight:DescribeIngestion",
+            "quicksight:ListIngestions",
+            "quicksight:UpdateDataSet",
+            "quicksight:DeleteDataSet",
+            "quicksight:CreateIngestion",
+            "quicksight:CancelIngestion",
+            "quicksight:UpdateDataSetPermissions"
+          ]
+        }
+      ]
+    }
+  ],
+  "refreshSchedules": [
+    {
+      "dataSetId": "flight-positions-dataset",
+      "scheduleId": "flight-positions-hourly-refresh",
+      "refreshType": "FULL_REFRESH",
+      "schedule": {
+        "scheduleFrequency": "HOURLY",
+        "timeOfTheDay": "00:00",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "dataSetId": "airport-data-dataset", 
+      "scheduleId": "airport-data-daily-refresh",
+      "refreshType": "INCREMENTAL_REFRESH",
+      "schedule": {
+        "scheduleFrequency": "DAILY",
+        "timeOfTheDay": "02:00",
+        "timezone": "UTC"
+      }
+    }
+  ]
+}

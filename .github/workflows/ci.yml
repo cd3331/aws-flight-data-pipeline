@@ -1,0 +1,486 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ develop, main ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # Code Quality and Security Checks
+  code-quality:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Needed for SonarCloud analysis
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        pip install pylint black isort bandit safety mypy
+
+    - name: Code formatting with Black
+      run: |
+        echo "Checking code formatting..."
+        black --check --diff .
+      continue-on-error: false
+
+    - name: Import sorting with isort
+      run: |
+        echo "Checking import sorting..."
+        isort --check-only --diff .
+      continue-on-error: false
+
+    - name: Linting with PyLint
+      run: |
+        echo "Running PyLint analysis..."
+        pylint --rcfile=.pylintrc --output-format=json --reports=no \
+          $(find . -name "*.py" -not -path "./.venv/*" -not -path "./venv/*" -not -path "./.git/*") \
+          > pylint-report.json || true
+        pylint --rcfile=.pylintrc \
+          $(find . -name "*.py" -not -path "./.venv/*" -not -path "./venv/*" -not -path "./.git/*")
+
+    - name: Type checking with MyPy
+      run: |
+        echo "Running MyPy type checking..."
+        mypy --config-file=mypy.ini . || true
+
+    - name: Security scanning with Bandit
+      run: |
+        echo "Running Bandit security scan..."
+        bandit -r . -f json -o bandit-report.json || true
+        bandit -r . -ll
+
+    - name: Dependency vulnerability check
+      run: |
+        echo "Checking for vulnerable dependencies..."
+        safety check --json --output safety-report.json || true
+        safety check
+
+    - name: Upload code quality artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: code-quality-reports
+        path: |
+          pylint-report.json
+          bandit-report.json
+          safety-report.json
+
+  # Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.python-version }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install pytest pytest-cov pytest-mock pytest-asyncio
+
+    - name: Run unit tests with coverage
+      run: |
+        echo "Running unit tests with coverage..."
+        pytest tests/unit/ \
+          --cov=src \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term \
+          --cov-fail-under=80 \
+          --junitxml=pytest-report.xml \
+          -v
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          pytest-report.xml
+          htmlcov/
+          coverage.xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+
+  # Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests]
+    
+    services:
+      localstack:
+        image: localstack/localstack:latest
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: lambda,dynamodb,s3,sns,sqs
+          DEBUG: 1
+          DATA_DIR: /tmp/localstack/data
+        options: >-
+          --health-cmd="curl -f http://localhost:4566/_localstack/health || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install pytest pytest-asyncio boto3 moto
+
+    - name: Wait for LocalStack to be ready
+      run: |
+        timeout 60s bash -c 'until curl -f http://localhost:4566/_localstack/health; do sleep 2; done'
+
+    - name: Set up test infrastructure
+      env:
+        AWS_ACCESS_KEY_ID: test
+        AWS_SECRET_ACCESS_KEY: test
+        AWS_DEFAULT_REGION: us-east-1
+        AWS_ENDPOINT_URL: http://localhost:4566
+      run: |
+        echo "Setting up test infrastructure in LocalStack..."
+        python tests/setup_test_infrastructure.py
+
+    - name: Run integration tests
+      env:
+        AWS_ACCESS_KEY_ID: test
+        AWS_SECRET_ACCESS_KEY: test
+        AWS_DEFAULT_REGION: us-east-1
+        AWS_ENDPOINT_URL: http://localhost:4566
+        ENVIRONMENT: test
+      run: |
+        echo "Running integration tests..."
+        pytest tests/integration/ \
+          --junitxml=integration-test-report.xml \
+          -v
+
+    - name: Upload integration test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: integration-test-report.xml
+
+  # Lambda Package Validation
+  lambda-package-tests:
+    name: Lambda Package Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Test Lambda package creation
+      run: |
+        echo "Testing Lambda package creation..."
+        
+        # Create deployment packages for each Lambda function
+        for function_dir in lambda/*/; do
+          if [ -d "$function_dir" ]; then
+            function_name=$(basename "$function_dir")
+            echo "Building package for $function_name..."
+            
+            # Create deployment package
+            mkdir -p dist/$function_name
+            
+            # Copy function code
+            cp -r $function_dir/* dist/$function_name/
+            
+            # Install dependencies
+            if [ -f "$function_dir/requirements.txt" ]; then
+              pip install -r "$function_dir/requirements.txt" -t dist/$function_name/
+            fi
+            
+            # Create ZIP package
+            cd dist/$function_name
+            zip -r ../$function_name.zip . -x "*.pyc" "*/__pycache__/*"
+            cd ../..
+            
+            # Validate package size (Lambda limit is 50MB compressed)
+            package_size=$(stat -f%z "dist/$function_name.zip" 2>/dev/null || stat -c%s "dist/$function_name.zip")
+            max_size=$((50 * 1024 * 1024))  # 50MB in bytes
+            
+            if [ $package_size -gt $max_size ]; then
+              echo "ERROR: Package $function_name.zip ($package_size bytes) exceeds Lambda size limit"
+              exit 1
+            else
+              echo "✓ Package $function_name.zip size OK: $package_size bytes"
+            fi
+          fi
+        done
+
+    - name: Upload Lambda packages
+      uses: actions/upload-artifact@v3
+      with:
+        name: lambda-packages
+        path: dist/*.zip
+
+  # Infrastructure Validation
+  terraform-validate:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.7
+
+    - name: Terraform Format Check
+      run: |
+        echo "Checking Terraform formatting..."
+        terraform fmt -check -recursive infrastructure/
+
+    - name: Terraform Init
+      run: |
+        cd infrastructure/
+        terraform init -backend=false
+
+    - name: Terraform Validate
+      run: |
+        cd infrastructure/
+        terraform validate
+
+    - name: Terraform Plan (Dry Run)
+      run: |
+        cd infrastructure/
+        terraform plan -var-file=environments/dev.tfvars -out=tfplan
+      env:
+        TF_VAR_aws_region: us-east-1
+        TF_VAR_environment: dev
+
+    - name: Upload Terraform plan
+      uses: actions/upload-artifact@v3
+      with:
+        name: terraform-plan-dev
+        path: infrastructure/tfplan
+
+  # Documentation Tests
+  docs-tests:
+    name: Documentation Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install documentation dependencies
+      run: |
+        pip install sphinx sphinx-rtd-theme docutils
+        pip install -r requirements.txt
+
+    - name: Test documentation build
+      run: |
+        echo "Testing documentation build..."
+        # Test README rendering
+        python -m docutils.core README.md README.html
+        
+        # Validate all markdown files
+        find . -name "*.md" -not -path "./.git/*" | while read file; do
+          echo "Validating $file..."
+          python -m docutils.core "$file" "${file%.md}.html" || echo "Warning: $file has formatting issues"
+        done
+
+    - name: Check for broken links in documentation
+      run: |
+        echo "Checking for broken internal links..."
+        # Simple check for broken relative links
+        grep -r "\[.*\](.*\.md)" . --include="*.md" | grep -v ".git" || echo "No internal markdown links found"
+
+  # Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: [integration-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install performance testing dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest-benchmark locust
+
+    - name: Run performance benchmarks
+      run: |
+        echo "Running performance benchmarks..."
+        pytest tests/performance/ \
+          --benchmark-json=benchmark-results.json \
+          -v || echo "Performance tests completed with warnings"
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-results
+        path: benchmark-results.json
+
+  # Final Status Check
+  ci-status:
+    name: CI Status Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, lambda-package-tests, terraform-validate, docs-tests]
+    if: always()
+    
+    steps:
+    - name: Check CI Results
+      run: |
+        echo "=== CI Pipeline Summary ==="
+        echo "Code Quality: ${{ needs.code-quality.result }}"
+        echo "Unit Tests: ${{ needs.unit-tests.result }}"
+        echo "Integration Tests: ${{ needs.integration-tests.result }}"
+        echo "Lambda Packages: ${{ needs.lambda-package-tests.result }}"
+        echo "Terraform Validation: ${{ needs.terraform-validate.result }}"
+        echo "Documentation Tests: ${{ needs.docs-tests.result }}"
+        
+        # Check if any critical jobs failed
+        if [[ "${{ needs.code-quality.result }}" == "failure" ]] || \
+           [[ "${{ needs.unit-tests.result }}" == "failure" ]] || \
+           [[ "${{ needs.integration-tests.result }}" == "failure" ]]; then
+          echo "❌ CI Pipeline Failed - Critical issues detected"
+          exit 1
+        elif [[ "${{ needs.lambda-package-tests.result }}" == "failure" ]] || \
+             [[ "${{ needs.terraform-validate.result }}" == "failure" ]]; then
+          echo "⚠️  CI Pipeline Completed with Warnings"
+          exit 0
+        else
+          echo "✅ CI Pipeline Passed Successfully"
+          exit 0
+        fi
+
+    - name: Notify on Slack (on failure)
+      if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        channel: '#flightdata-alerts'
+        message: |
+          🚨 CI Pipeline Failed!
+          Branch: ${{ github.ref_name }}
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}
+          
+          Check the details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Security Scanning with Third-Party Tools
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

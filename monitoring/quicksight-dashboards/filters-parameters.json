@@ -1,0 +1,841 @@
+{
+  "dashboardFilters": [
+    {
+      "filterId": "global-date-filter",
+      "filterName": "Analysis Date Range",
+      "filterType": "TIME_RANGE_FILTER",
+      "scope": {
+        "appliedTo": "ALL_SHEETS",
+        "excludedSheets": []
+      },
+      "timeRangeFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "timestamp"
+        },
+        "includeMinimum": true,
+        "includeMaximum": true,
+        "rangeMinimumValue": {
+          "parameter": "date_range_param"
+        },
+        "rangeMaximumValue": {
+          "rollingDateConfiguration": {
+            "dateDimension": "timestamp",
+            "expression": "NOW()"
+          }
+        },
+        "nullOption": "NON_NULLS_ONLY",
+        "timeGranularity": "MINUTE"
+      },
+      "defaultConfiguration": {
+        "relativeDateType": "LAST_N_DAYS",
+        "relativeDateValue": 7
+      }
+    },
+    {
+      "filterId": "altitude-range-filter",
+      "filterName": "Altitude Range Filter",
+      "filterType": "NUMERIC_RANGE_FILTER",
+      "scope": {
+        "appliedTo": "SELECTED_SHEETS",
+        "includedSheets": [
+          "flight-tracking-dashboard",
+          "performance-analytics-dashboard"
+        ]
+      },
+      "numericRangeFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "altitude_ft"
+        },
+        "includeMinimum": true,
+        "includeMaximum": true,
+        "rangeMinimum": {
+          "parameter": "altitude_range_param"
+        },
+        "rangeMaximum": {
+          "constant": 50000
+        },
+        "nullOption": "NON_NULLS_ONLY",
+        "aggregationFunction": "NO_AGGREGATION"
+      }
+    },
+    {
+      "filterId": "speed-range-filter",
+      "filterName": "Speed Range Filter",
+      "filterType": "NUMERIC_RANGE_FILTER",
+      "scope": {
+        "appliedTo": "SELECTED_SHEETS",
+        "includedSheets": [
+          "flight-tracking-dashboard", 
+          "performance-analytics-dashboard"
+        ]
+      },
+      "numericRangeFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "speed_knots"
+        },
+        "includeMinimum": true,
+        "includeMaximum": true,
+        "rangeMinimum": {
+          "constant": 0
+        },
+        "rangeMaximum": {
+          "parameter": "speed_range_param"
+        },
+        "nullOption": "NON_NULLS_ONLY",
+        "aggregationFunction": "NO_AGGREGATION"
+      }
+    },
+    {
+      "filterId": "region-filter",
+      "filterName": "Geographic Region Filter",
+      "filterType": "CATEGORY_FILTER",
+      "scope": {
+        "appliedTo": "ALL_SHEETS",
+        "excludedSheets": []
+      },
+      "categoryFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "region"
+        },
+        "configuration": {
+          "filterListConfiguration": {
+            "matchOperator": "CONTAINS",
+            "categoryValues": {
+              "parameter": "region_filter_param"
+            },
+            "selectAllOptions": "FILTER_ALL_VALUES",
+            "nullOption": "NON_NULLS_ONLY"
+          }
+        }
+      }
+    },
+    {
+      "filterId": "flight-phase-filter",
+      "filterName": "Flight Phase Filter",
+      "filterType": "CATEGORY_FILTER",
+      "scope": {
+        "appliedTo": "SELECTED_SHEETS",
+        "includedSheets": [
+          "flight-tracking-dashboard",
+          "performance-analytics-dashboard"
+        ]
+      },
+      "categoryFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "flight_phase"
+        },
+        "configuration": {
+          "filterListConfiguration": {
+            "matchOperator": "CONTAINS",
+            "categoryValues": {
+              "parameter": "flight_phase_param"
+            },
+            "selectAllOptions": "FILTER_ALL_VALUES",
+            "nullOption": "NON_NULLS_ONLY"
+          }
+        }
+      }
+    },
+    {
+      "filterId": "aircraft-category-filter",
+      "filterName": "Aircraft/Airline Category Filter",
+      "filterType": "CATEGORY_FILTER",
+      "scope": {
+        "appliedTo": "SELECTED_SHEETS",
+        "includedSheets": [
+          "flight-tracking-dashboard",
+          "performance-analytics-dashboard"
+        ]
+      },
+      "categoryFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "aircraft_category"
+        },
+        "configuration": {
+          "filterListConfiguration": {
+            "matchOperator": "CONTAINS",
+            "categoryValues": {
+              "parameter": "aircraft_category_param"
+            },
+            "selectAllOptions": "FILTER_ALL_VALUES",
+            "nullOption": "NON_NULLS_ONLY"
+          }
+        }
+      }
+    },
+    {
+      "filterId": "time-of-day-filter",
+      "filterName": "Time of Day Filter",
+      "filterType": "CATEGORY_FILTER",
+      "scope": {
+        "appliedTo": "ALL_SHEETS",
+        "excludedSheets": ["data-quality-monitoring-dashboard"]
+      },
+      "categoryFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "time_of_day"
+        },
+        "configuration": {
+          "filterListConfiguration": {
+            "matchOperator": "CONTAINS",
+            "categoryValues": {
+              "parameter": "time_of_day_param"
+            },
+            "selectAllOptions": "FILTER_ALL_VALUES",
+            "nullOption": "NON_NULLS_ONLY"
+          }
+        }
+      }
+    },
+    {
+      "filterId": "data-quality-threshold-filter",
+      "filterName": "Data Quality Threshold Filter",
+      "filterType": "NUMERIC_RANGE_FILTER",
+      "scope": {
+        "appliedTo": "SELECTED_SHEETS",
+        "includedSheets": ["data-quality-monitoring-dashboard"]
+      },
+      "numericRangeFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "data_quality"
+        },
+        "includeMinimum": true,
+        "includeMaximum": true,
+        "rangeMinimum": {
+          "parameter": "data_quality_threshold_param"
+        },
+        "rangeMaximum": {
+          "constant": 100
+        },
+        "nullOption": "NON_NULLS_ONLY",
+        "aggregationFunction": "NO_AGGREGATION"
+      }
+    },
+    {
+      "filterId": "peak-hours-filter",
+      "filterName": "Peak Traffic Hours Filter",
+      "filterType": "CATEGORY_FILTER",
+      "scope": {
+        "appliedTo": "SELECTED_SHEETS",
+        "includedSheets": [
+          "flight-tracking-dashboard",
+          "performance-analytics-dashboard"
+        ]
+      },
+      "categoryFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "is_peak_hour"
+        },
+        "configuration": {
+          "filterListConfiguration": {
+            "matchOperator": "EQUALS",
+            "categoryValues": [1],
+            "selectAllOptions": "FILTER_NONE",
+            "nullOption": "NON_NULLS_ONLY"
+          }
+        }
+      },
+      "defaultState": "DISABLED"
+    },
+    {
+      "filterId": "transcontinental-filter",
+      "filterName": "Transcontinental Flights Filter",
+      "filterType": "CATEGORY_FILTER",
+      "scope": {
+        "appliedTo": "SELECTED_SHEETS",
+        "includedSheets": [
+          "flight-tracking-dashboard",
+          "performance-analytics-dashboard"
+        ]
+      },
+      "categoryFilter": {
+        "column": {
+          "dataSetIdentifier": "flight-positions-dataset",
+          "columnName": "is_transcontinental"
+        },
+        "configuration": {
+          "filterListConfiguration": {
+            "matchOperator": "EQUALS",
+            "categoryValues": [1],
+            "selectAllOptions": "FILTER_NONE",
+            "nullOption": "NON_NULLS_ONLY"
+          }
+        }
+      },
+      "defaultState": "DISABLED"
+    }
+  ],
+  "parameterControls": [
+    {
+      "parameterControlId": "date-range-control",
+      "sourceParameterName": "date_range_param",
+      "title": "📅 Analysis Period",
+      "type": "DATE_TIME_PICKER",
+      "dateTimePickerParameterControl": {
+        "parameterControlId": "date-range-control",
+        "title": "Select Date Range",
+        "sourceParameterName": "date_range_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE",
+            "fontConfiguration": {
+              "fontSize": "14px",
+              "fontWeight": "BOLD"
+            }
+          },
+          "dateTimeFormat": "YYYY/MM/DD HH:mm"
+        }
+      },
+      "position": {
+        "x": 0,
+        "y": 0,
+        "width": 6,
+        "height": 1
+      }
+    },
+    {
+      "parameterControlId": "altitude-range-control",
+      "sourceParameterName": "altitude_range_param",
+      "title": "✈️ Altitude Range (ft)",
+      "type": "SLIDER",
+      "sliderParameterControl": {
+        "parameterControlId": "altitude-range-control",
+        "title": "Altitude Filter",
+        "sourceParameterName": "altitude_range_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE"
+          }
+        },
+        "maximumValue": 50000,
+        "minimumValue": 0,
+        "stepSize": 1000
+      },
+      "position": {
+        "x": 6,
+        "y": 0,
+        "width": 6,
+        "height": 1
+      }
+    },
+    {
+      "parameterControlId": "speed-range-control",
+      "sourceParameterName": "speed_range_param",
+      "title": "🚀 Speed Range (knots)",
+      "type": "SLIDER",
+      "sliderParameterControl": {
+        "parameterControlId": "speed-range-control",
+        "title": "Speed Filter",
+        "sourceParameterName": "speed_range_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE"
+          }
+        },
+        "maximumValue": 800,
+        "minimumValue": 0,
+        "stepSize": 50
+      },
+      "position": {
+        "x": 12,
+        "y": 0,
+        "width": 6,
+        "height": 1
+      }
+    },
+    {
+      "parameterControlId": "region-filter-control",
+      "sourceParameterName": "region_filter_param",
+      "title": "🌍 Geographic Regions",
+      "type": "MULTI_SELECT",
+      "multiSelectParameterControl": {
+        "parameterControlId": "region-filter-control",
+        "title": "Select Regions",
+        "sourceParameterName": "region_filter_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE"
+          },
+          "selectAllOptions": {
+            "visibility": "VISIBLE"
+          }
+        },
+        "type": "MULTI_SELECT",
+        "selectableValues": {
+          "values": [
+            "North America",
+            "Europe", 
+            "Asia Pacific",
+            "South America",
+            "Other"
+          ]
+        }
+      },
+      "position": {
+        "x": 18,
+        "y": 0,
+        "width": 6,
+        "height": 1
+      }
+    },
+    {
+      "parameterControlId": "flight-phase-control",
+      "sourceParameterName": "flight_phase_param",
+      "title": "🛫 Flight Phase",
+      "type": "DROPDOWN",
+      "dropdownParameterControl": {
+        "parameterControlId": "flight-phase-control",
+        "title": "Flight Phase Filter",
+        "sourceParameterName": "flight_phase_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE"
+          },
+          "selectAllOptions": {
+            "visibility": "VISIBLE"
+          }
+        },
+        "type": "MULTI_SELECT",
+        "selectableValues": {
+          "values": [
+            "Ground",
+            "Climbing",
+            "Cruise", 
+            "Descending",
+            "In-Transit"
+          ]
+        }
+      },
+      "position": {
+        "x": 0,
+        "y": 1,
+        "width": 6,
+        "height": 1
+      }
+    },
+    {
+      "parameterControlId": "aircraft-category-control",
+      "sourceParameterName": "aircraft_category_param",
+      "title": "🏢 Aircraft Category",
+      "type": "DROPDOWN",
+      "dropdownParameterControl": {
+        "parameterControlId": "aircraft-category-control",
+        "title": "Airline/Aircraft Filter",
+        "sourceParameterName": "aircraft_category_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE"
+          },
+          "selectAllOptions": {
+            "visibility": "VISIBLE"
+          }
+        },
+        "type": "MULTI_SELECT",
+        "selectableValues": {
+          "values": [
+            "Lufthansa Group",
+            "British Airways",
+            "Air France",
+            "United Airlines",
+            "Other"
+          ]
+        }
+      },
+      "position": {
+        "x": 6,
+        "y": 1,
+        "width": 6,
+        "height": 1
+      }
+    },
+    {
+      "parameterControlId": "time-of-day-control",
+      "sourceParameterName": "time_of_day_param",
+      "title": "🕐 Time of Day",
+      "type": "LIST",
+      "listParameterControl": {
+        "parameterControlId": "time-of-day-control",
+        "title": "Time Period Filter",
+        "sourceParameterName": "time_of_day_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE"
+          },
+          "selectAllOptions": {
+            "visibility": "VISIBLE"
+          }
+        },
+        "type": "MULTI_SELECT",
+        "selectableValues": {
+          "values": [
+            "Morning",
+            "Afternoon",
+            "Evening", 
+            "Night"
+          ]
+        }
+      },
+      "position": {
+        "x": 12,
+        "y": 1,
+        "width": 6,
+        "height": 1
+      }
+    },
+    {
+      "parameterControlId": "data-quality-threshold-control",
+      "sourceParameterName": "data_quality_threshold_param",
+      "title": "📊 Data Quality Threshold",
+      "type": "SLIDER",
+      "sliderParameterControl": {
+        "parameterControlId": "data-quality-threshold-control",
+        "title": "Minimum Quality Score (%)",
+        "sourceParameterName": "data_quality_threshold_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE"
+          }
+        },
+        "maximumValue": 100,
+        "minimumValue": 0,
+        "stepSize": 5
+      },
+      "position": {
+        "x": 18,
+        "y": 1,
+        "width": 6,
+        "height": 1
+      }
+    },
+    {
+      "parameterControlId": "refresh-frequency-control",
+      "sourceParameterName": "refresh_frequency_param",
+      "title": "🔄 Data Refresh Rate",
+      "type": "DROPDOWN",
+      "dropdownParameterControl": {
+        "parameterControlId": "refresh-frequency-control",
+        "title": "Dashboard Refresh Frequency",
+        "sourceParameterName": "refresh_frequency_param",
+        "displayOptions": {
+          "titleOptions": {
+            "visibility": "VISIBLE"
+          }
+        },
+        "type": "SINGLE_SELECT",
+        "selectableValues": {
+          "values": [
+            "REAL_TIME",
+            "HOURLY",
+            "DAILY",
+            "WEEKLY"
+          ]
+        }
+      },
+      "position": {
+        "x": 0,
+        "y": 2,
+        "width": 6,
+        "height": 1
+      }
+    }
+  ],
+  "cascadingFilters": [
+    {
+      "cascadeId": "region-to-detailed-region",
+      "parentFilter": "region-filter",
+      "childFilters": [
+        {
+          "filterId": "detailed-region-filter",
+          "filterName": "Detailed Regional Classification",
+          "filterType": "CATEGORY_FILTER",
+          "scope": {
+            "appliedTo": "ALL_SHEETS"
+          },
+          "categoryFilter": {
+            "column": {
+              "dataSetIdentifier": "flight-positions-dataset",
+              "columnName": "detailed_region"
+            },
+            "configuration": {
+              "filterListConfiguration": {
+                "matchOperator": "CONTAINS",
+                "categoryValues": {
+                  "dynamicValues": {
+                    "parentFilterId": "region-filter",
+                    "mappingConfiguration": {
+                      "North America": ["US Central", "US Eastern"],
+                      "Europe": ["Western Europe", "Eastern Europe"],
+                      "Asia Pacific": ["East Asia"],
+                      "South America": ["Other Region"],
+                      "Other": ["Other Region"]
+                    }
+                  }
+                },
+                "selectAllOptions": "FILTER_ALL_VALUES"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "cascadeId": "flight-phase-to-altitude",
+      "parentFilter": "flight-phase-filter",
+      "childFilters": [
+        {
+          "filterId": "phase-specific-altitude-filter",
+          "filterName": "Phase-Specific Altitude Range",
+          "filterType": "NUMERIC_RANGE_FILTER",
+          "scope": {
+            "appliedTo": "SELECTED_SHEETS",
+            "includedSheets": [
+              "flight-tracking-dashboard",
+              "performance-analytics-dashboard"
+            ]
+          },
+          "numericRangeFilter": {
+            "column": {
+              "dataSetIdentifier": "flight-positions-dataset",
+              "columnName": "altitude_ft"
+            },
+            "includeMinimum": true,
+            "includeMaximum": true,
+            "rangeMinimum": {
+              "dynamicValue": {
+                "parentFilterId": "flight-phase-filter",
+                "mappingConfiguration": {
+                  "Ground": 0,
+                  "Climbing": 0,
+                  "Cruise": 30000,
+                  "Descending": 0,
+                  "In-Transit": 0
+                }
+              }
+            },
+            "rangeMaximum": {
+              "dynamicValue": {
+                "parentFilterId": "flight-phase-filter",
+                "mappingConfiguration": {
+                  "Ground": 1000,
+                  "Climbing": 30000,
+                  "Cruise": 50000,
+                  "Descending": 30000,
+                  "In-Transit": 30000
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "conditionalFilters": [
+    {
+      "conditionalFilterId": "quality-based-visibility",
+      "condition": {
+        "fieldExpression": "{data_quality} < {data_quality_threshold_param}",
+        "operator": "LESS_THAN"
+      },
+      "actions": [
+        {
+          "actionType": "HIDE_VISUAL",
+          "targetVisuals": [
+            "flight-tracking-map",
+            "altitude-distribution-histogram"
+          ]
+        },
+        {
+          "actionType": "SHOW_MESSAGE",
+          "message": "⚠️ Data quality below threshold. Some visualizations hidden to maintain accuracy."
+        }
+      ]
+    },
+    {
+      "conditionalFilterId": "peak-hours-enhancement",
+      "condition": {
+        "parameterExpression": "{time_of_day_param} IN ('Morning', 'Evening')"
+      },
+      "actions": [
+        {
+          "actionType": "MODIFY_VISUAL_PROPERTIES",
+          "targetVisuals": [
+            "hourly-flight-trends"
+          ],
+          "properties": {
+            "refreshRate": "REAL_TIME",
+            "dataPointLimit": 1000
+          }
+        }
+      ]
+    },
+    {
+      "conditionalFilterId": "anomaly-alert-trigger",
+      "condition": {
+        "fieldExpression": "countIf({anomaly_score} > 0.9) > 10",
+        "operator": "GREATER_THAN"
+      },
+      "actions": [
+        {
+          "actionType": "HIGHLIGHT_VISUAL",
+          "targetVisuals": [
+            "anomaly-detection-scatter"
+          ],
+          "highlightColor": "#FF6347"
+        },
+        {
+          "actionType": "SEND_ALERT",
+          "alertConfiguration": {
+            "message": "🚨 High number of anomalies detected in current dataset",
+            "severity": "HIGH",
+            "recipients": ["flight-ops@company.com"]
+          }
+        }
+      ]
+    }
+  ],
+  "filterGroups": [
+    {
+      "groupId": "operational-filters",
+      "groupName": "🛩️ Operational Filters",
+      "description": "Core operational flight filtering options",
+      "filters": [
+        "global-date-filter",
+        "altitude-range-filter",
+        "speed-range-filter",
+        "flight-phase-filter"
+      ],
+      "collapsible": true,
+      "defaultExpanded": true
+    },
+    {
+      "groupId": "geographic-filters",
+      "groupName": "🌍 Geographic Filters",
+      "description": "Location and regional filtering options",
+      "filters": [
+        "region-filter",
+        "detailed-region-filter"
+      ],
+      "collapsible": true,
+      "defaultExpanded": false
+    },
+    {
+      "groupId": "aircraft-filters",
+      "groupName": "✈️ Aircraft & Airline Filters",
+      "description": "Aircraft and airline specific filters",
+      "filters": [
+        "aircraft-category-filter"
+      ],
+      "collapsible": true,
+      "defaultExpanded": false
+    },
+    {
+      "groupId": "temporal-filters",
+      "groupName": "⏰ Time-Based Filters",
+      "description": "Time period and schedule-based filtering",
+      "filters": [
+        "time-of-day-filter",
+        "peak-hours-filter"
+      ],
+      "collapsible": true,
+      "defaultExpanded": false
+    },
+    {
+      "groupId": "quality-filters",
+      "groupName": "📊 Data Quality Filters",
+      "description": "Data quality and validation filters",
+      "filters": [
+        "data-quality-threshold-filter"
+      ],
+      "collapsible": true,
+      "defaultExpanded": false
+    },
+    {
+      "groupId": "advanced-filters",
+      "groupName": "⚙️ Advanced Filters",
+      "description": "Specialized and advanced filtering options",
+      "filters": [
+        "transcontinental-filter"
+      ],
+      "collapsible": true,
+      "defaultExpanded": false
+    }
+  ],
+  "savedFilterSets": [
+    {
+      "filterSetId": "executive-view",
+      "filterSetName": "📊 Executive Dashboard View",
+      "description": "Pre-configured filters for executive-level analysis",
+      "filterConfiguration": {
+        "date_range_param": "LAST_30_DAYS",
+        "region_filter_param": ["North America", "Europe"],
+        "data_quality_threshold_param": 95,
+        "time_of_day_param": ["ALL"],
+        "flight_phase_param": ["Cruise", "In-Transit"],
+        "aircraft_category_param": ["ALL"]
+      }
+    },
+    {
+      "filterSetId": "operations-view",
+      "filterSetName": "⚙️ Operations Dashboard View",
+      "description": "Real-time operational monitoring configuration",
+      "filterConfiguration": {
+        "date_range_param": "LAST_6_HOURS",
+        "region_filter_param": ["ALL"],
+        "data_quality_threshold_param": 90,
+        "time_of_day_param": ["ALL"],
+        "flight_phase_param": ["ALL"],
+        "aircraft_category_param": ["ALL"],
+        "refresh_frequency_param": "REAL_TIME"
+      }
+    },
+    {
+      "filterSetId": "quality-monitoring-view",
+      "filterSetName": "🔍 Data Quality Focus View",
+      "description": "Specialized view for data quality analysis",
+      "filterConfiguration": {
+        "date_range_param": "LAST_24_HOURS",
+        "region_filter_param": ["ALL"],
+        "data_quality_threshold_param": 80,
+        "time_of_day_param": ["ALL"],
+        "flight_phase_param": ["ALL"],
+        "aircraft_category_param": ["ALL"]
+      }
+    },
+    {
+      "filterSetId": "performance-analysis-view",
+      "filterSetName": "📈 Performance Analysis View",
+      "description": "Configuration for detailed performance metrics",
+      "filterConfiguration": {
+        "date_range_param": "LAST_7_DAYS",
+        "altitude_range_param": [10000, 45000],
+        "speed_range_param": [200, 600],
+        "region_filter_param": ["ALL"],
+        "flight_phase_param": ["Cruise"],
+        "aircraft_category_param": ["ALL"]
+      }
+    },
+    {
+      "filterSetId": "anomaly-detection-view",
+      "filterSetName": "🚨 Anomaly Detection View", 
+      "description": "Specialized filters for anomaly identification",
+      "filterConfiguration": {
+        "date_range_param": "LAST_2_HOURS",
+        "data_quality_threshold_param": 70,
+        "region_filter_param": ["ALL"],
+        "time_of_day_param": ["ALL"],
+        "flight_phase_param": ["ALL"],
+        "aircraft_category_param": ["ALL"],
+        "refresh_frequency_param": "REAL_TIME"
+      }
+    }
+  ]
+}

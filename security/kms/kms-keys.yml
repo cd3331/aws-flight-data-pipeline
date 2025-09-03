@@ -1,0 +1,386 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Customer Managed KMS Keys for Flight Data Pipeline'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Environment for key naming and policies
+  
+  ApplicationName:
+    Type: String
+    Default: flightdata-pipeline
+    Description: Application name for resource naming
+
+Resources:
+  # Lambda Function Encryption Key
+  LambdaKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub '${ApplicationName}-${Environment}-lambda-encryption-key'
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow Lambda Service
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+            Resource: '*'
+          - Sid: Allow Lambda Execution Role
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt LambdaExecutionRole.Arn
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:GenerateDataKey
+            Resource: '*'
+      KeyRotationEnabled: true
+      EnableKeyRotation: true
+      MultiRegion: false
+      KeyUsage: ENCRYPT_DECRYPT
+      KeySpec: SYMMETRIC_DEFAULT
+      Tags:
+        - Key: Name
+          Value: !Sub '${ApplicationName}-${Environment}-lambda-kms'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: Lambda
+        - Key: Purpose
+          Value: Encryption
+
+  LambdaKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${ApplicationName}-${Environment}-lambda'
+      TargetKeyId: !Ref LambdaKMSKey
+
+  # S3 Bucket Encryption Key
+  S3KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub '${ApplicationName}-${Environment}-s3-encryption-key'
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow S3 Service
+            Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+            Resource: '*'
+          - Sid: Allow Lambda Access to S3 Key
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt LambdaExecutionRole.Arn
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:GenerateDataKey
+            Resource: '*'
+      KeyRotationEnabled: true
+      EnableKeyRotation: true
+      MultiRegion: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${ApplicationName}-${Environment}-s3-kms'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: S3
+        - Key: Purpose
+          Value: Encryption
+
+  S3KMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${ApplicationName}-${Environment}-s3'
+      TargetKeyId: !Ref S3KMSKey
+
+  # DynamoDB Encryption Key
+  DynamoDBKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub '${ApplicationName}-${Environment}-dynamodb-encryption-key'
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow DynamoDB Service
+            Effect: Allow
+            Principal:
+              Service: dynamodb.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+            Resource: '*'
+          - Sid: Allow Application Access
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt LambdaExecutionRole.Arn
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:GenerateDataKey
+            Resource: '*'
+      KeyRotationEnabled: true
+      EnableKeyRotation: true
+      MultiRegion: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${ApplicationName}-${Environment}-dynamodb-kms'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: DynamoDB
+        - Key: Purpose
+          Value: Encryption
+
+  DynamoDBKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${ApplicationName}-${Environment}-dynamodb'
+      TargetKeyId: !Ref DynamoDBKMSKey
+
+  # CloudWatch Logs Encryption Key
+  CloudWatchKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub '${ApplicationName}-${Environment}-cloudwatch-encryption-key'
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow CloudWatch Logs
+            Effect: Allow
+            Principal:
+              Service: !Sub 'logs.${AWS::Region}.amazonaws.com'
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: '*'
+            Condition:
+              ArnEquals:
+                'kms:EncryptionContext:aws:logs:arn': !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+      KeyRotationEnabled: true
+      EnableKeyRotation: true
+      MultiRegion: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${ApplicationName}-${Environment}-cloudwatch-kms'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: CloudWatch
+        - Key: Purpose
+          Value: Encryption
+
+  CloudWatchKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${ApplicationName}-${Environment}-cloudwatch'
+      TargetKeyId: !Ref CloudWatchKMSKey
+
+  # Secrets Manager Encryption Key
+  SecretsManagerKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub '${ApplicationName}-${Environment}-secrets-encryption-key'
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow Secrets Manager
+            Effect: Allow
+            Principal:
+              Service: secretsmanager.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+            Resource: '*'
+          - Sid: Allow Application Access
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt LambdaExecutionRole.Arn
+            Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+            Resource: '*'
+      KeyRotationEnabled: true
+      EnableKeyRotation: true
+      MultiRegion: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${ApplicationName}-${Environment}-secrets-kms'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: SecretsManager
+        - Key: Purpose
+          Value: Encryption
+
+  SecretsManagerKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${ApplicationName}-${Environment}-secrets'
+      TargetKeyId: !Ref SecretsManagerKMSKey
+
+  # Lambda Execution Role (referenced in key policies)
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-${Environment}-lambda-execution-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                'aws:RequestedRegion': !Ref AWS::Region
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: KMSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:DescribeKey
+                  - kms:GenerateDataKey
+                Resource:
+                  - !GetAtt LambdaKMSKey.Arn
+                  - !GetAtt S3KMSKey.Arn
+                  - !GetAtt DynamoDBKMSKey.Arn
+                  - !GetAtt SecretsManagerKMSKey.Arn
+
+  # Key Rotation Monitoring
+  KeyRotationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ApplicationName}-${Environment}-kms-key-rotation'
+      AlarmDescription: 'Monitor KMS key rotation status'
+      MetricName: NumberOfKeysRotated
+      Namespace: AWS/KMS
+      Statistic: Sum
+      Period: 86400  # 24 hours
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions:
+        - !Ref KeyRotationTopic
+
+  KeyRotationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${ApplicationName}-${Environment}-key-rotation-alerts'
+      KmsMasterKeyId: !Ref SecretsManagerKMSKey
+
+Outputs:
+  LambdaKMSKeyId:
+    Description: Lambda encryption key ID
+    Value: !Ref LambdaKMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaKMSKey'
+  
+  LambdaKMSKeyArn:
+    Description: Lambda encryption key ARN
+    Value: !GetAtt LambdaKMSKey.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaKMSKeyArn'
+
+  S3KMSKeyId:
+    Description: S3 encryption key ID
+    Value: !Ref S3KMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-S3KMSKey'
+  
+  S3KMSKeyArn:
+    Description: S3 encryption key ARN
+    Value: !GetAtt S3KMSKey.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-S3KMSKeyArn'
+
+  DynamoDBKMSKeyId:
+    Description: DynamoDB encryption key ID
+    Value: !Ref DynamoDBKMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-DynamoDBKMSKey'
+  
+  DynamoDBKMSKeyArn:
+    Description: DynamoDB encryption key ARN
+    Value: !GetAtt DynamoDBKMSKey.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-DynamoDBKMSKeyArn'
+
+  CloudWatchKMSKeyId:
+    Description: CloudWatch encryption key ID
+    Value: !Ref CloudWatchKMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudWatchKMSKey'
+
+  SecretsManagerKMSKeyId:
+    Description: Secrets Manager encryption key ID
+    Value: !Ref SecretsManagerKMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-SecretsManagerKMSKey'
+
+  LambdaExecutionRoleArn:
+    Description: Lambda execution role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaExecutionRole'

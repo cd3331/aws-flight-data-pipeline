@@ -1,0 +1,495 @@
+# Flight Data Pipeline GraphQL Schema
+# This schema provides a flexible query interface for flight data,
+# complementing the REST API with advanced filtering and nested queries
+
+# Scalar types
+scalar DateTime
+scalar Float
+scalar JSON
+
+# Enums
+enum FlightStatus {
+  ACTIVE
+  LANDED
+  SCHEDULED
+  CANCELLED
+  DELAYED
+  UNKNOWN
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+enum FlightSortField {
+  TIMESTAMP
+  ALTITUDE
+  VELOCITY
+  CALLSIGN
+  DEPARTURE_TIME
+  ARRIVAL_TIME
+}
+
+enum AnalyticsTimeRange {
+  LAST_HOUR
+  LAST_24_HOURS
+  LAST_WEEK
+  LAST_MONTH
+  CUSTOM
+}
+
+# Input types for filtering and pagination
+input GeographicBounds {
+  latMin: Float!
+  latMax: Float!
+  lonMin: Float!
+  lonMax: Float!
+}
+
+input TimeRange {
+  start: DateTime!
+  end: DateTime!
+}
+
+input FlightFilters {
+  bounds: GeographicBounds
+  timeRange: TimeRange
+  callsign: String
+  icao24: String
+  altitudeMin: Float
+  altitudeMax: Float
+  velocityMin: Float
+  velocityMax: Float
+  status: FlightStatus
+  origin: String
+  destination: String
+}
+
+input PaginationInput {
+  limit: Int = 50
+  offset: Int = 0
+}
+
+input SortInput {
+  field: FlightSortField!
+  order: SortOrder = ASC
+}
+
+input AirportFilters {
+  country: String
+  region: String
+  type: String
+  icaoCode: String
+  iataCode: String
+}
+
+# Core data types
+type Flight {
+  id: ID!
+  icao24: String!
+  callsign: String
+  origin: String
+  destination: String
+  latitude: Float
+  longitude: Float
+  altitude: Float
+  velocity: Float
+  heading: Float
+  verticalRate: Float
+  timestamp: DateTime!
+  status: FlightStatus!
+  aircraft: Aircraft
+  route: FlightRoute
+  telemetry: [FlightTelemetry!]!
+}
+
+type Aircraft {
+  icao24: String!
+  registration: String
+  manufacturerIcao: String
+  manufacturerName: String
+  model: String
+  typecode: String
+  serialNumber: String
+  lineNumber: String
+  icaoAircraftType: String
+  operator: String
+  operatorCallsign: String
+  operatorIcao: String
+  operatorIata: String
+  owner: String
+  categoryDescription: String
+}
+
+type FlightRoute {
+  origin: Airport
+  destination: Airport
+  waypoints: [Waypoint!]!
+  estimatedDepartureTime: DateTime
+  actualDepartureTime: DateTime
+  estimatedArrivalTime: DateTime
+  actualArrivalTime: DateTime
+  distance: Float
+  duration: Int
+}
+
+type FlightTelemetry {
+  timestamp: DateTime!
+  latitude: Float!
+  longitude: Float!
+  altitude: Float
+  velocity: Float
+  heading: Float
+  verticalRate: Float
+}
+
+type Waypoint {
+  latitude: Float!
+  longitude: Float!
+  altitude: Float
+  timestamp: DateTime
+  name: String
+}
+
+type Airport {
+  id: ID!
+  icaoCode: String!
+  iataCode: String
+  name: String!
+  city: String
+  country: String!
+  latitude: Float!
+  longitude: Float!
+  altitude: Float
+  timezone: String
+  type: String
+  region: String
+  municipalityName: String
+  scheduledService: Boolean
+  gpsCode: String
+  localCode: String
+  homeLink: String
+  wikipediaLink: String
+  keywords: [String!]!
+  runways: [Runway!]!
+  statistics: AirportStatistics
+}
+
+type Runway {
+  id: String!
+  airportRef: String!
+  airportIdent: String!
+  length: Float
+  width: Float
+  surface: String
+  lighted: Boolean
+  closed: Boolean
+  leIdent: String
+  leLatitude: Float
+  leLongitude: Float
+  leElevation: Float
+  leHeading: Float
+  leDisplacedThreshold: Float
+  heIdent: String
+  heLatitude: Float
+  heLongitude: Float
+  heElevation: Float
+  heHeading: Float
+  heDisplacedThreshold: Float
+}
+
+type AirportStatistics {
+  totalFlights: Int!
+  averageDelay: Float
+  onTimePerformance: Float
+  totalPassengers: Int
+  cargoVolume: Float
+  lastUpdated: DateTime!
+}
+
+# Analytics and statistics types
+type FlightStatistics {
+  totalFlights: Int!
+  activeFlights: Int!
+  averageAltitude: Float!
+  averageVelocity: Float!
+  totalDistance: Float!
+  flightsByStatus: [FlightStatusCount!]!
+  flightsByOrigin: [OriginDestinationCount!]!
+  flightsByDestination: [OriginDestinationCount!]!
+  hourlyDistribution: [HourlyFlightCount!]!
+  lastUpdated: DateTime!
+}
+
+type FlightStatusCount {
+  status: FlightStatus!
+  count: Int!
+}
+
+type OriginDestinationCount {
+  airport: Airport!
+  count: Int!
+}
+
+type HourlyFlightCount {
+  hour: Int!
+  count: Int!
+}
+
+type TrafficDensity {
+  bounds: GeographicBounds!
+  flightCount: Int!
+  averageAltitude: Float!
+  density: Float!
+  gridSize: Float!
+}
+
+type SystemHealth {
+  status: String!
+  version: String!
+  uptime: Int!
+  timestamp: DateTime!
+  database: DatabaseHealth!
+  externalServices: [ExternalServiceHealth!]!
+  performance: PerformanceMetrics!
+}
+
+type DatabaseHealth {
+  status: String!
+  responseTime: Float!
+  connections: Int!
+  lastBackup: DateTime
+}
+
+type ExternalServiceHealth {
+  name: String!
+  status: String!
+  responseTime: Float
+  lastCheck: DateTime!
+}
+
+type PerformanceMetrics {
+  averageResponseTime: Float!
+  requestsPerSecond: Float!
+  errorRate: Float!
+  memoryUsage: Float!
+  cpuUsage: Float!
+}
+
+# Response wrapper types for pagination
+type FlightConnection {
+  edges: [FlightEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type FlightEdge {
+  node: Flight!
+  cursor: String!
+}
+
+type AirportConnection {
+  edges: [AirportEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type AirportEdge {
+  node: Airport!
+  cursor: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# Root Query type
+type Query {
+  # Flight queries
+  flights(
+    filters: FlightFilters
+    pagination: PaginationInput
+    sort: SortInput
+  ): FlightConnection!
+  
+  flight(id: ID!): Flight
+  flightByIcao24(icao24: String!): Flight
+  flightsByCallsign(callsign: String!): [Flight!]!
+  
+  # Airport queries
+  airports(
+    filters: AirportFilters
+    pagination: PaginationInput
+  ): AirportConnection!
+  
+  airport(id: ID!): Airport
+  airportByIcao(icaoCode: String!): Airport
+  airportByIata(iataCode: String!): Airport
+  airportsNearby(
+    latitude: Float!
+    longitude: Float!
+    radiusKm: Float = 50
+  ): [Airport!]!
+  
+  # Analytics queries
+  flightStatistics(
+    filters: FlightFilters
+    timeRange: AnalyticsTimeRange = LAST_24_HOURS
+    customTimeRange: TimeRange
+  ): FlightStatistics!
+  
+  trafficDensity(
+    bounds: GeographicBounds!
+    gridSize: Float = 1.0
+  ): [TrafficDensity!]!
+  
+  popularRoutes(
+    timeRange: AnalyticsTimeRange = LAST_WEEK
+    limit: Int = 10
+  ): [RouteStatistics!]!
+  
+  # System queries
+  health: SystemHealth!
+  version: String!
+}
+
+type RouteStatistics {
+  origin: Airport!
+  destination: Airport!
+  flightCount: Int!
+  averageDuration: Float!
+  averageDelay: Float!
+}
+
+# Mutation input types
+input CreateFlightAlertInput {
+  name: String!
+  filters: FlightFilters!
+  webhookUrl: String
+  emailAddress: String
+}
+
+input UpdateFlightAlertInput {
+  id: ID!
+  name: String
+  filters: FlightFilters
+  webhookUrl: String
+  emailAddress: String
+  isActive: Boolean
+}
+
+input FlightDataExportInput {
+  filters: FlightFilters!
+  format: ExportFormat!
+  includeAircraftData: Boolean = false
+  includeRouteData: Boolean = false
+  includeTelemetry: Boolean = false
+}
+
+enum ExportFormat {
+  CSV
+  JSON
+  PARQUET
+  GEOJSON
+}
+
+# Mutation response types
+type FlightAlert {
+  id: ID!
+  name: String!
+  filters: JSON!
+  webhookUrl: String
+  emailAddress: String
+  isActive: Boolean!
+  createdAt: DateTime!
+  lastTriggered: DateTime
+}
+
+type ExportJob {
+  id: ID!
+  status: ExportJobStatus!
+  downloadUrl: String
+  createdAt: DateTime!
+  completedAt: DateTime
+  errorMessage: String
+  fileSize: Int
+  recordCount: Int
+}
+
+enum ExportJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+# Root Mutation type
+type Mutation {
+  # Flight alerts
+  createFlightAlert(input: CreateFlightAlertInput!): FlightAlert!
+  updateFlightAlert(input: UpdateFlightAlertInput!): FlightAlert!
+  deleteFlightAlert(id: ID!): Boolean!
+  
+  # Data export
+  exportFlightData(input: FlightDataExportInput!): ExportJob!
+  
+  # System operations (admin only)
+  refreshCache: Boolean!
+  updateSystemConfiguration(config: JSON!): SystemHealth!
+}
+
+# Subscription input types
+input FlightSubscriptionFilters {
+  bounds: GeographicBounds
+  icao24: [String!]
+  callsigns: [String!]
+  altitudeMin: Float
+  altitudeMax: Float
+  statusChanges: [FlightStatus!]
+}
+
+# Root Subscription type
+type Subscription {
+  # Real-time flight updates
+  flightUpdates(filters: FlightSubscriptionFilters): Flight!
+  
+  # Flight status changes
+  flightStatusChanges(icao24: [String!]): Flight!
+  
+  # New flights in area
+  newFlightsInArea(bounds: GeographicBounds!): Flight!
+  
+  # System alerts
+  systemAlerts: SystemAlert!
+  
+  # Export job status updates
+  exportJobUpdates(jobId: ID!): ExportJob!
+}
+
+type SystemAlert {
+  id: ID!
+  level: AlertLevel!
+  message: String!
+  timestamp: DateTime!
+  source: String!
+  metadata: JSON
+}
+
+enum AlertLevel {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+# Schema definition
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

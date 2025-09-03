@@ -1,0 +1,1146 @@
+{
+  "dashboards": [
+    {
+      "dashboardId": "flight-tracking-dashboard",
+      "name": "Flight Tracking Operations",
+      "description": "Real-time flight tracking with geographic visualization and operational metrics",
+      "visualizations": [
+        {
+          "visualId": "flight-tracking-map",
+          "title": "Real-Time Flight Tracking Map",
+          "subtitle": "Live aircraft positions with trajectory analysis",
+          "visualType": "GEOSPATIAL_MAP",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "geospatial": [
+              {
+                "fieldId": "latitude",
+                "fieldType": "DIMENSION"
+              },
+              {
+                "fieldId": "longitude", 
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "size": [
+              {
+                "fieldId": "altitude_ft",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "MAX"
+              }
+            ],
+            "color": [
+              {
+                "fieldId": "speed_category",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "tooltip": [
+              {
+                "fieldId": "callsign",
+                "fieldType": "DIMENSION"
+              },
+              {
+                "fieldId": "origin_country",
+                "fieldType": "DIMENSION"
+              },
+              {
+                "fieldId": "flight_phase",
+                "fieldType": "DIMENSION"
+              },
+              {
+                "fieldId": "altitude_ft",
+                "fieldType": "MEASURE"
+              },
+              {
+                "fieldId": "speed_knots",
+                "fieldType": "MEASURE"
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "mapStyle": "LIGHT",
+            "baseMapVisibility": "VISIBLE",
+            "pointStyle": {
+              "selectedPointStyle": "CIRCLE",
+              "clusteredPointsStyle": "HEATMAP"
+            },
+            "tooltipVisibility": "VISIBLE",
+            "legendVisibility": "VISIBLE"
+          },
+          "actions": [
+            {
+              "actionId": "drill_down_flight",
+              "actionType": "FILTER_ACTION",
+              "targetVisual": "flight-details-table",
+              "filterConfiguration": {
+                "selectedFieldOptions": "ALL_FIELDS",
+                "targetSheet": "flight-details"
+              }
+            }
+          ],
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 24,
+            "height": 12
+          }
+        },
+        {
+          "visualId": "altitude-distribution-histogram",
+          "title": "Altitude Distribution Analysis",
+          "subtitle": "Flight altitude patterns and density analysis",
+          "visualType": "HISTOGRAM",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "values": [
+              {
+                "fieldId": "altitude_ft",
+                "fieldType": "MEASURE"
+              }
+            ]
+          },
+          "binConfiguration": {
+            "binCount": 50,
+            "binWidth": 1000,
+            "startValue": 0,
+            "endValue": 50000
+          },
+          "formatConfiguration": {
+            "xAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE",
+              "dataOptions": {
+                "numericAxisOptions": {
+                  "scale": {
+                    "linear": {
+                      "stepCount": 10,
+                      "stepSize": 5000
+                    }
+                  }
+                }
+              }
+            },
+            "yAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE"
+            },
+            "legend": {
+              "visibility": "HIDDEN"
+            },
+            "dataLabels": {
+              "visibility": "HIDDEN"
+            },
+            "tooltip": {
+              "visibility": "VISIBLE",
+              "selectedTooltipType": "DETAILED"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "visualId": "speed-analysis-charts",
+          "title": "Speed Analysis by Flight Phase",
+          "subtitle": "Speed distribution across different flight phases",
+          "visualType": "COMBO_CHART",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "category": [
+              {
+                "fieldId": "flight_phase",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "barValues": [
+              {
+                "fieldId": "avg_speed",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ],
+            "lineValues": [
+              {
+                "fieldId": "speed_p95",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "MAX"
+              }
+            ],
+            "color": [
+              {
+                "fieldId": "aircraft_category",
+                "fieldType": "DIMENSION"
+              }
+            ]
+          },
+          "sortConfiguration": [
+            {
+              "fieldSort": {
+                "fieldId": "avg_speed",
+                "direction": "DESC",
+                "aggregationFunction": "AVERAGE"
+              }
+            }
+          ],
+          "formatConfiguration": {
+            "primaryYAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE",
+              "dataOptions": {
+                "numericAxisOptions": {
+                  "scale": {
+                    "linear": {
+                      "stepCount": 8,
+                      "stepSize": 100
+                    }
+                  }
+                }
+              }
+            },
+            "secondaryYAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "HIDDEN"
+            },
+            "legend": {
+              "visibility": "VISIBLE",
+              "position": "RIGHT"
+            },
+            "dataLabels": {
+              "visibility": "HIDDEN"
+            },
+            "tooltip": {
+              "visibility": "VISIBLE",
+              "selectedTooltipType": "DETAILED"
+            }
+          },
+          "position": {
+            "x": 12,
+            "y": 12,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "visualId": "traffic-density-heatmap",
+          "title": "Air Traffic Density Heatmap",
+          "subtitle": "Geographic distribution of flight traffic intensity",
+          "visualType": "HEATMAP",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "rows": [
+              {
+                "fieldId": "detailed_region",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "columns": [
+              {
+                "fieldId": "time_of_day",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "values": [
+              {
+                "fieldId": "traffic_density",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ]
+          },
+          "sortConfiguration": [
+            {
+              "fieldSort": {
+                "fieldId": "traffic_density",
+                "direction": "DESC",
+                "aggregationFunction": "AVERAGE"
+              }
+            }
+          ],
+          "formatConfiguration": {
+            "colorScale": {
+              "colors": [
+                {
+                  "color": "#E8F5E8",
+                  "minValue": 0
+                },
+                {
+                  "color": "#90EE90",
+                  "minValue": 5
+                },
+                {
+                  "color": "#FFD700",
+                  "minValue": 15
+                },
+                {
+                  "color": "#FF6347",
+                  "minValue": 25
+                },
+                {
+                  "color": "#DC143C",
+                  "minValue": 50
+                }
+              ]
+            },
+            "legend": {
+              "visibility": "VISIBLE",
+              "position": "BOTTOM"
+            },
+            "dataLabels": {
+              "visibility": "VISIBLE"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 24,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "dashboardId": "performance-analytics-dashboard",
+      "name": "Flight Performance Analytics",
+      "description": "Time-series analysis of flight performance and operational trends",
+      "visualizations": [
+        {
+          "visualId": "hourly-flight-trends",
+          "title": "Hourly Flight Volume Trends",
+          "subtitle": "24-hour flight activity patterns with seasonal variations",
+          "visualType": "LINE_CHART",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "category": [
+              {
+                "fieldId": "hour",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "values": [
+              {
+                "fieldId": "flight_count",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "SUM"
+              },
+              {
+                "fieldId": "active_flights",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ],
+            "color": [
+              {
+                "fieldId": "region",
+                "fieldType": "DIMENSION"
+              }
+            ]
+          },
+          "sortConfiguration": [
+            {
+              "fieldSort": {
+                "fieldId": "hour",
+                "direction": "ASC"
+              }
+            }
+          ],
+          "formatConfiguration": {
+            "primaryYAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE",
+              "dataOptions": {
+                "numericAxisOptions": {
+                  "scale": {
+                    "linear": {
+                      "stepCount": 10
+                    }
+                  }
+                }
+              }
+            },
+            "xAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE"
+            },
+            "legend": {
+              "visibility": "VISIBLE",
+              "position": "TOP"
+            },
+            "dataLabels": {
+              "visibility": "HIDDEN"
+            },
+            "tooltip": {
+              "visibility": "VISIBLE"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 24,
+            "height": 8
+          }
+        },
+        {
+          "visualId": "altitude-performance-scatter",
+          "title": "Altitude vs Speed Performance Analysis",
+          "subtitle": "Aircraft performance correlation analysis",
+          "visualType": "SCATTER_PLOT",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "xAxis": [
+              {
+                "fieldId": "altitude_ft",
+                "fieldType": "MEASURE"
+              }
+            ],
+            "yAxis": [
+              {
+                "fieldId": "speed_knots",
+                "fieldType": "MEASURE"
+              }
+            ],
+            "size": [
+              {
+                "fieldId": "mach_number",
+                "fieldType": "MEASURE"
+              }
+            ],
+            "color": [
+              {
+                "fieldId": "aircraft_category",
+                "fieldType": "DIMENSION"
+              }
+            ]
+          ],
+          "filterConfiguration": {
+            "categoryFilter": [
+              {
+                "filterId": "airborne_filter",
+                "column": {
+                  "dataSetIdentifier": "flight-positions-dataset",
+                  "columnName": "on_ground"
+                },
+                "configuration": {
+                  "filterListConfiguration": {
+                    "matchOperator": "EQUALS",
+                    "categoryValues": [false]
+                  }
+                }
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "xAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE",
+              "dataOptions": {
+                "numericAxisOptions": {
+                  "scale": {
+                    "linear": {
+                      "stepSize": 10000
+                    }
+                  }
+                }
+              }
+            },
+            "yAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE"
+            },
+            "legend": {
+              "visibility": "VISIBLE",
+              "position": "RIGHT"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 12,
+            "height": 8
+          }
+        },
+        {
+          "visualId": "climb-rate-distribution",
+          "title": "Vertical Rate Distribution",
+          "subtitle": "Climb and descent pattern analysis",
+          "visualType": "DONUT_CHART",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "category": [
+              {
+                "fieldId": "climb_rate_category",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "values": [
+              {
+                "fieldId": "flight_count",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "COUNT"
+              }
+            ]
+          },
+          "sortConfiguration": [
+            {
+              "fieldSort": {
+                "fieldId": "flight_count",
+                "direction": "DESC",
+                "aggregationFunction": "COUNT"
+              }
+            }
+          ],
+          "formatConfiguration": {
+            "categoryLabelOptions": {
+              "visibility": "VISIBLE"
+            },
+            "valueLabelOptions": {
+              "visibility": "VISIBLE"
+            },
+            "percentageLabelOptions": {
+              "visibility": "VISIBLE"
+            },
+            "legend": {
+              "visibility": "VISIBLE",
+              "position": "RIGHT"
+            },
+            "donutCenterOptions": {
+              "labelVisibility": "VISIBLE"
+            }
+          },
+          "position": {
+            "x": 12,
+            "y": 8,
+            "width": 12,
+            "height": 8
+          }
+        },
+        {
+          "visualId": "efficiency-metrics-kpi",
+          "title": "Flight Efficiency Metrics",
+          "subtitle": "Key performance indicators for operational efficiency",
+          "visualType": "KPI",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "values": [
+              {
+                "fieldId": "speed_efficiency",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ],
+            "targetValues": [
+              {
+                "fieldId": "speed_efficiency",
+                "fieldType": "MEASURE", 
+                "aggregationFunction": "PERCENTILE",
+                "percentileValue": 90
+              }
+            ],
+            "trendGroups": [
+              {
+                "fieldId": "hour",
+                "fieldType": "DIMENSION"
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "primaryValueDisplayType": "ACTUAL",
+            "primaryValueFontConfiguration": {
+              "fontSize": "EXTRA_LARGE",
+              "fontWeight": "BOLD"
+            },
+            "secondaryValueOptions": {
+              "visibility": "VISIBLE"
+            },
+            "progressBar": {
+              "visibility": "VISIBLE"
+            },
+            "trendArrows": {
+              "visibility": "VISIBLE"
+            },
+            "comparisonConfiguration": {
+              "comparisonMethod": "PERCENT_DIFFERENCE"
+            }
+          },
+          "conditionalFormatting": [
+            {
+              "conditionalFormattingId": "efficiency_formatting",
+              "conditionalFormattingOptions": [
+                {
+                  "primaryValue": {
+                    "textColor": {
+                      "solid": {
+                        "expression": "IF({speed_efficiency} >= 0.8, '#228B22', IF({speed_efficiency} >= 0.6, '#FFD700', '#DC143C'))"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "visualId": "data-quality-gauge",
+          "title": "Real-Time Data Quality",
+          "subtitle": "Overall system data integrity score",
+          "visualType": "GAUGE_CHART",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "values": [
+              {
+                "fieldId": "data_quality",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "gaugeChartOptions": {
+              "primaryValueDisplayType": "ACTUAL",
+              "comparison": {
+                "comparisonMethod": "PERCENT_DIFFERENCE"
+              },
+              "arcAxis": {
+                "range": {
+                  "min": 0,
+                  "max": 100
+                },
+                "reserveRange": 10
+              },
+              "arc": {
+                "arcAngle": 180,
+                "arcThickness": "WHOLE"
+              }
+            },
+            "dataLabels": {
+              "visibility": "VISIBLE"
+            }
+          },
+          "conditionalFormatting": [
+            {
+              "conditionalFormattingId": "quality_gauge_formatting",
+              "conditionalFormattingOptions": [
+                {
+                  "primaryValue": {
+                    "textColor": {
+                      "gradient": {
+                        "expression": "{data_quality}",
+                        "color": {
+                          "stops": [
+                            {
+                              "gradientOffset": 0,
+                              "color": "#DC143C"
+                            },
+                            {
+                              "gradientOffset": 80,
+                              "color": "#FFD700"
+                            },
+                            {
+                              "gradientOffset": 95,
+                              "color": "#228B22"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "position": {
+            "x": 8,
+            "y": 16,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "visualId": "regional-performance-table",
+          "title": "Regional Performance Summary",
+          "subtitle": "Detailed metrics breakdown by geographic region",
+          "visualType": "TABLE",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "groupBy": [
+              {
+                "fieldId": "detailed_region",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "values": [
+              {
+                "fieldId": "flight_count",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "SUM"
+              },
+              {
+                "fieldId": "avg_altitude",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              },
+              {
+                "fieldId": "avg_speed",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              },
+              {
+                "fieldId": "traffic_density",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              },
+              {
+                "fieldId": "data_quality",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ]
+          },
+          "sortConfiguration": [
+            {
+              "fieldSort": {
+                "fieldId": "flight_count",
+                "direction": "DESC",
+                "aggregationFunction": "SUM"
+              }
+            }
+          ],
+          "formatConfiguration": {
+            "tableOptions": {
+              "orientation": "VERTICAL",
+              "headerStyle": {
+                "textWrap": "WRAP",
+                "height": 25
+              },
+              "cellStyle": {
+                "textWrap": "WRAP",
+                "height": 25
+              }
+            },
+            "fieldOptions": [
+              {
+                "fieldId": "flight_count",
+                "customLabel": "Total Flights",
+                "visibility": "VISIBLE"
+              },
+              {
+                "fieldId": "avg_altitude",
+                "customLabel": "Avg Altitude (ft)",
+                "visibility": "VISIBLE"
+              },
+              {
+                "fieldId": "avg_speed",
+                "customLabel": "Avg Speed (kts)",
+                "visibility": "VISIBLE"
+              },
+              {
+                "fieldId": "traffic_density", 
+                "customLabel": "Traffic Density",
+                "visibility": "VISIBLE"
+              },
+              {
+                "fieldId": "data_quality",
+                "customLabel": "Data Quality (%)",
+                "visibility": "VISIBLE"
+              }
+            ]
+          },
+          "position": {
+            "x": 16,
+            "y": 16,
+            "width": 8,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "dashboardId": "data-quality-monitoring-dashboard",
+      "name": "Data Quality Monitoring",
+      "description": "Comprehensive data quality metrics and validation monitoring",
+      "visualizations": [
+        {
+          "visualId": "quality-score-timeline",
+          "title": "Data Quality Score Over Time",
+          "subtitle": "Historical trend of overall data quality metrics",
+          "visualType": "LINE_CHART",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "category": [
+              {
+                "fieldId": "timestamp",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "values": [
+              {
+                "fieldId": "data_quality",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ],
+            "color": [
+              {
+                "fieldId": "region",
+                "fieldType": "DIMENSION"
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "primaryYAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE",
+              "dataOptions": {
+                "numericAxisOptions": {
+                  "scale": {
+                    "linear": {
+                      "stepSize": 5,
+                      "stepCount": 20
+                    }
+                  },
+                  "range": {
+                    "minValue": 80,
+                    "maxValue": 100
+                  }
+                }
+              }
+            },
+            "dataLabels": {
+              "visibility": "HIDDEN"
+            },
+            "legend": {
+              "visibility": "VISIBLE",
+              "position": "BOTTOM"
+            },
+            "referenceLines": [
+              {
+                "value": 98,
+                "label": "Target Quality (98%)",
+                "color": "#228B22"
+              },
+              {
+                "value": 95,
+                "label": "Warning Threshold (95%)",
+                "color": "#FFD700"
+              },
+              {
+                "value": 90,
+                "label": "Critical Threshold (90%)",
+                "color": "#DC143C"
+              }
+            ]
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 24,
+            "height": 8
+          }
+        },
+        {
+          "visualId": "data-freshness-gauge",
+          "title": "Data Freshness Indicator",
+          "subtitle": "Average age of incoming data streams",
+          "visualType": "GAUGE_CHART",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "values": [
+              {
+                "fieldId": "position_freshness",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "gaugeChartOptions": {
+              "primaryValueDisplayType": "ACTUAL",
+              "arcAxis": {
+                "range": {
+                  "min": 0,
+                  "max": 300
+                },
+                "reserveRange": 30
+              },
+              "arc": {
+                "arcAngle": 180,
+                "arcThickness": "WHOLE"
+              }
+            }
+          },
+          "conditionalFormatting": [
+            {
+              "conditionalFormattingId": "freshness_formatting",
+              "conditionalFormattingOptions": [
+                {
+                  "primaryValue": {
+                    "textColor": {
+                      "solid": {
+                        "expression": "IF({position_freshness} <= 30, '#228B22', IF({position_freshness} <= 120, '#FFD700', '#DC143C'))"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "visualId": "validation-failures-breakdown",
+          "title": "Validation Failures by Type",
+          "subtitle": "Categorized analysis of data validation issues",
+          "visualType": "HORIZONTAL_BAR_CHART",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "category": [
+              {
+                "fieldId": "validation_type",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "values": [
+              {
+                "fieldId": "validation_failures",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "SUM"
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "dataLabels": {
+              "visibility": "VISIBLE",
+              "position": "OUTSIDE"
+            },
+            "legend": {
+              "visibility": "HIDDEN"
+            },
+            "categoryAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE"
+            },
+            "valueAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE"
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 8,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "visualId": "anomaly-detection-scatter",
+          "title": "Anomaly Detection Analysis",
+          "subtitle": "Detection of unusual flight patterns and data outliers",
+          "visualType": "SCATTER_PLOT",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "xAxis": [
+              {
+                "fieldId": "speed_knots",
+                "fieldType": "MEASURE"
+              }
+            ],
+            "yAxis": [
+              {
+                "fieldId": "altitude_ft",
+                "fieldType": "MEASURE"
+              }
+            ],
+            "size": [
+              {
+                "fieldId": "anomaly_score",
+                "fieldType": "MEASURE"
+              }
+            ],
+            "color": [
+              {
+                "fieldId": "anomaly_type",
+                "fieldType": "DIMENSION"
+              }
+            ]
+          },
+          "filterConfiguration": {
+            "numericRangeFilter": [
+              {
+                "filterId": "anomaly_threshold_filter",
+                "column": {
+                  "dataSetIdentifier": "flight-positions-dataset",
+                  "columnName": "anomaly_score"
+                },
+                "includeMinimum": true,
+                "rangeMinimum": {
+                  "constant": 0.7
+                }
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "xAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE"
+            },
+            "yAxisDisplayOptions": {
+              "axisLineVisibility": "VISIBLE",
+              "gridLineVisibility": "VISIBLE"
+            },
+            "legend": {
+              "visibility": "VISIBLE",
+              "position": "RIGHT"
+            }
+          },
+          "position": {
+            "x": 16,
+            "y": 8,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "visualId": "completeness-heatmap",
+          "title": "Data Completeness Matrix",
+          "subtitle": "Field-level completeness across data sources",
+          "visualType": "HEATMAP",
+          "dataSetArn": "arn:aws:quicksight:us-east-1:123456789012:dataset/flight-positions-dataset",
+          "fieldWells": {
+            "rows": [
+              {
+                "fieldId": "data_source",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "columns": [
+              {
+                "fieldId": "field_name",
+                "fieldType": "DIMENSION"
+              }
+            ],
+            "values": [
+              {
+                "fieldId": "completeness_percentage",
+                "fieldType": "MEASURE",
+                "aggregationFunction": "AVERAGE"
+              }
+            ]
+          },
+          "formatConfiguration": {
+            "colorScale": {
+              "colors": [
+                {
+                  "color": "#DC143C",
+                  "minValue": 0
+                },
+                {
+                  "color": "#FFD700",
+                  "minValue": 80
+                },
+                {
+                  "color": "#228B22",
+                  "minValue": 95
+                }
+              ]
+            },
+            "dataLabels": {
+              "visibility": "VISIBLE"
+            },
+            "legend": {
+              "visibility": "VISIBLE",
+              "position": "BOTTOM"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 24,
+            "height": 8
+          }
+        }
+      ]
+    }
+  ],
+  "sharedComponents": {
+    "colorPalettes": {
+      "flightStatus": {
+        "Ground": "#8B4513",
+        "Climbing": "#32CD32",
+        "Cruise": "#4169E1",
+        "Descending": "#FF6347",
+        "In-Transit": "#9370DB"
+      },
+      "speedCategories": {
+        "Slow (0-150 kts)": "#87CEEB",
+        "Normal (150-400 kts)": "#32CD32", 
+        "Fast (400-600 kts)": "#FFD700",
+        "Very Fast (600+ kts)": "#FF6347"
+      },
+      "altitudeBands": {
+        "Low (0-10k ft)": "#8FBC8F",
+        "Medium (10k-30k ft)": "#4169E1",
+        "High (30k-50k ft)": "#FF6347",
+        "Very High (50k+ ft)": "#8B008B"
+      },
+      "regions": {
+        "North America": "#FF6347",
+        "Europe": "#4169E1", 
+        "Asia Pacific": "#32CD32",
+        "South America": "#FFD700",
+        "Other": "#9370DB"
+      },
+      "dataQuality": {
+        "Excellent (95-100%)": "#228B22",
+        "Good (90-95%)": "#9ACD32",
+        "Fair (80-90%)": "#FFD700",
+        "Poor (70-80%)": "#FF6347",
+        "Critical (<70%)": "#DC143C"
+      }
+    },
+    "defaultFormatting": {
+      "fonts": {
+        "title": {
+          "fontSize": "16px",
+          "fontWeight": "BOLD",
+          "color": "#232F3E"
+        },
+        "subtitle": {
+          "fontSize": "12px",
+          "fontWeight": "NORMAL",
+          "color": "#687078"
+        },
+        "axisLabels": {
+          "fontSize": "11px",
+          "fontWeight": "NORMAL",
+          "color": "#232F3E"
+        },
+        "dataLabels": {
+          "fontSize": "10px",
+          "fontWeight": "NORMAL",
+          "color": "#232F3E"
+        }
+      },
+      "gridLines": {
+        "color": "#EAEDED",
+        "thickness": 1
+      },
+      "backgrounds": {
+        "dashboard": "#FFFFFF",
+        "widget": "#FAFBFC"
+      }
+    }
+  }
+}

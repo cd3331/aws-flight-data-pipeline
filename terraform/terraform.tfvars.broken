@@ -1,0 +1,56 @@
+# Basic configuration
+environment = "dev"
+alert_email = "chandra.r.dunn@gmail.com"
+project_name = "flight-data-pipeline"
+aws_region = "us-east-1"
+
+# Budget configuration
+budget_config = {
+  monthly_limit          = 50
+  warning_threshold      = 50
+  critical_threshold     = 80
+  forecast_threshold     = 100
+  enable_service_budgets = false
+  service_limits = {
+    lambda   = 10
+    s3       = 10
+    dynamodb = 10
+  }
+}
+
+# Notification configuration
+notification_config = {
+  alert_emails          = ["chandra.r.dunn@gmail.com"]
+  critical_alert_emails = ["chandra.r.dunn@gmail.com"]
+  budget_emails         = ["chandra.r.dunn@gmail.com"]
+  enable_sms           = false
+  sms_numbers          = []
+  enable_slack         = false
+  slack_webhook_url    = ""
+}
+
+# Cost optimization
+cost_optimization = {
+  use_intelligent_tiering    = true
+  use_transfer_acceleration  = false
+  enable_requester_pays      = false
+  enable_spot_instances      = false
+  enable_auto_scaling        = true
+}
+
+# Monitoring configuration
+monitoring_config = {
+  enable_synthetic_monitoring = false
+  enable_enhanced_monitoring  = false
+  log_retention_days         = 7
+  enable_detailed_monitoring = false
+  enable_insights           = false
+  create_log_insights_queries = false
+}
+
+# Lambda configuration (if needed)
+lambda_architecture = "x86_64"
+
+# Add to monitoring_config if not already there
+
+# Lambda architecture

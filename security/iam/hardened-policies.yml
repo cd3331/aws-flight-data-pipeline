@@ -1,0 +1,514 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Hardened IAM Policies with Least Privilege and MFA Requirements'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Environment name
+  
+  ApplicationName:
+    Type: String
+    Default: flightdata-pipeline
+    Description: Application name for resource naming
+
+Resources:
+  # Lambda Execution Role with Least Privilege
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-${Environment}-lambda-execution-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                'aws:RequestedRegion': !Ref AWS::Region
+              IpAddress:
+                'aws:SourceIp': 
+                  - '10.0.0.0/8'  # Only from VPC
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: 
+                  - !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-raw-data/*'
+                  - !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-processed-data/*'
+                Condition:
+                  StringEquals:
+                    's3:x-amz-server-side-encryption': 'aws:kms'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: 
+                  - !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-raw-data'
+                  - !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-processed-data'
+                Condition:
+                  StringLike:
+                    's3:prefix': ['flight-data/*']
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                Resource: 
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ApplicationName}-${Environment}-flight-data'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ApplicationName}-${Environment}-flight-data/index/*'
+                Condition:
+                  ForAllValues:StringEquals:
+                    'dynamodb:Attributes': ['icao24', 'timestamp', 'latitude', 'longitude', 'altitude']
+        - PolicyName: KMSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                Resource: 
+                  - !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+                Condition:
+                  StringEquals:
+                    'kms:ViaService': 
+                      - !Sub 's3.${AWS::Region}.amazonaws.com'
+                      - !Sub 'dynamodb.${AWS::Region}.amazonaws.com'
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ApplicationName}/${Environment}/*'
+                Condition:
+                  StringEquals:
+                    'secretsmanager:VersionStage': 'AWSCURRENT'
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: 
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ApplicationName}-${Environment}-*'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ApplicationName}-${Environment}-*:*'
+        - PolicyName: CloudWatchMetrics
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'cloudwatch:namespace': !Sub '${ApplicationName}/${Environment}'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: LambdaExecution
+
+  # Data Processing Role (for ETL processes)
+  DataProcessingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-${Environment}-data-processing-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                'aws:RequestedRegion': !Ref AWS::Region
+      Policies:
+        - PolicyName: ProcessingS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-raw-data/*'
+                Condition:
+                  StringEquals:
+                    's3:x-amz-server-side-encryption': 'aws:kms'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-processed-data/*'
+                Condition:
+                  StringEquals:
+                    's3:x-amz-server-side-encryption': 'aws:kms'
+                    's3:x-amz-server-side-encryption-aws-kms-key-id': !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+
+  # Human User Role with MFA Requirements
+  DataAnalystRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-${Environment}-data-analyst-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: sts:AssumeRole
+            Condition:
+              Bool:
+                'aws:MultiFactorAuthPresent': true
+              NumericLessThan:
+                'aws:MultiFactorAuthAge': 3600  # 1 hour
+      Policies:
+        - PolicyName: ReadOnlyDataAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource: 
+                  - !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-processed-data'
+                  - !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-processed-data/*'
+                Condition:
+                  StringEquals:
+                    's3:x-amz-server-side-encryption': 'aws:kms'
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ApplicationName}-${Environment}-flight-data'
+                Condition:
+                  ForAllValues:StringEquals:
+                    'dynamodb:Select': ['ALL_ATTRIBUTES', 'ALL_PROJECTED_ATTRIBUTES']
+              - Effect: Allow
+                Action:
+                  - athena:StartQueryExecution
+                  - athena:StopQueryExecution
+                  - athena:GetQueryExecution
+                  - athena:GetQueryResults
+                Resource: 
+                  - !Sub 'arn:aws:athena:${AWS::Region}:${AWS::AccountId}:workgroup/${ApplicationName}-${Environment}-*'
+
+  # Admin Role with Strong MFA and Time Restrictions
+  AdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-${Environment}-admin-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: sts:AssumeRole
+            Condition:
+              Bool:
+                'aws:MultiFactorAuthPresent': true
+              NumericLessThan:
+                'aws:MultiFactorAuthAge': 1800  # 30 minutes
+              DateGreaterThan:
+                'aws:RequestTime': '08:00Z'
+              DateLessThan:
+                'aws:RequestTime': '18:00Z'  # Business hours only
+              IpAddress:
+                'aws:SourceIp': 
+                  - '203.0.113.0/24'  # Replace with actual corporate IP range
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+      Policies:
+        - PolicyName: RestrictedAdminAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                Resource: !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${ApplicationName}-${Environment}-*'
+              - Effect: Allow
+                Action:
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ApplicationName}-${Environment}-*'
+              - Effect: Deny
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                Resource: '*'
+                Condition:
+                  StringNotEquals:
+                    'aws:RequestedRegion': !Ref AWS::Region
+
+  # Service-linked roles for specific services
+  DataQualityServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-${Environment}-data-quality-service-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: DataQualityAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-raw-data/*'
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ApplicationName}-${Environment}-quality-metrics'
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ApplicationName}-${Environment}-alerts'
+                Condition:
+                  StringEquals:
+                    'sns:MessageAttribute:severity': ['HIGH', 'CRITICAL']
+
+  # Cross-account role for CI/CD (with external ID)
+  CICDRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ApplicationName}-${Environment}-cicd-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::123456789012:root'  # Replace with CI/CD account
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                'sts:ExternalId': '{{resolve:secretsmanager:cicd/external-id:SecretString:external-id}}'
+      Policies:
+        - PolicyName: DeploymentAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:PublishVersion
+                  - lambda:UpdateAlias
+                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ApplicationName}-${Environment}-*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${ApplicationName}-${Environment}-deployment-artifacts/*'
+
+  # Security Boundary Policy (applied to all roles)
+  SecurityBoundaryPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${ApplicationName}-${Environment}-security-boundary'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # Prevent privilege escalation
+          - Effect: Deny
+            Action:
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:AttachRolePolicy
+              - iam:DetachRolePolicy
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - iam:UpdateAssumeRolePolicy
+              - iam:PassRole
+            Resource: '*'
+            Condition:
+              StringNotEquals:
+                'aws:PrincipalServiceName': ['lambda.amazonaws.com', 'ec2.amazonaws.com']
+          # Prevent KMS key manipulation
+          - Effect: Deny
+            Action:
+              - kms:Create*
+              - kms:Delete*
+              - kms:Disable*
+              - kms:Enable*
+              - kms:Put*
+              - kms:Revoke*
+              - kms:Schedule*
+              - kms:Update*
+            Resource: '*'
+          # Prevent VPC modification
+          - Effect: Deny
+            Action:
+              - ec2:Create*
+              - ec2:Delete*
+              - ec2:Modify*
+              - ec2:Replace*
+              - ec2:Attach*
+              - ec2:Detach*
+            Resource: '*'
+            Condition:
+              StringNotEquals:
+                'ec2:VpcID': !ImportValue 
+                  Fn::Sub: '${ApplicationName}-${Environment}-vpc-VPC'
+          # Only allow operations within specified region
+          - Effect: Deny
+            Action: '*'
+            Resource: '*'
+            Condition:
+              StringNotEquals:
+                'aws:RequestedRegion': !Ref AWS::Region
+          # Prevent CloudTrail tampering
+          - Effect: Deny
+            Action:
+              - cloudtrail:Stop*
+              - cloudtrail:Delete*
+              - cloudtrail:Update*
+            Resource: '*'
+
+  # Apply security boundary to roles
+  LambdaRoleBoundaryAttachment:
+    Type: AWS::IAM::RolePermissionsBoundary
+    Properties:
+      RoleName: !Ref LambdaExecutionRole
+      PermissionsBoundary: !Ref SecurityBoundaryPolicy
+
+  DataProcessingRoleBoundaryAttachment:
+    Type: AWS::IAM::RolePermissionsBoundary
+    Properties:
+      RoleName: !Ref DataProcessingRole
+      PermissionsBoundary: !Ref SecurityBoundaryPolicy
+
+  # IAM Password Policy
+  IAMPasswordPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${ApplicationName}-${Environment}-password-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - iam:ChangePassword
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:user/${!aws:username}'
+            Condition:
+              Bool:
+                'aws:MultiFactorAuthPresent': true
+
+  # CloudTrail for IAM activity monitoring
+  IAMCloudTrail:
+    Type: AWS::CloudTrail::Trail
+    Properties:
+      TrailName: !Sub '${ApplicationName}-${Environment}-iam-trail'
+      S3BucketName: !Ref CloudTrailBucket
+      S3KeyPrefix: 'iam-activity/'
+      IncludeGlobalServiceEvents: true
+      IsMultiRegionTrail: false
+      EnableLogFileValidation: true
+      KMSKeyId: !Sub '{{resolve:ssm:/${ApplicationName}/${Environment}/cloudtrail/kms-key}}'
+      EventSelectors:
+        - ReadWriteType: All
+          IncludeManagementEvents: true
+          DataResources:
+            - Type: 'AWS::IAM::Role'
+              Values: ['*']
+            - Type: 'AWS::IAM::Policy'
+              Values: ['*']
+            - Type: 'AWS::IAM::User'
+              Values: ['*']
+
+  CloudTrailBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ApplicationName}-${Environment}-cloudtrail-logs'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Sub '{{resolve:ssm:/${ApplicationName}/${Environment}/cloudtrail/kms-key}}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: CloudTrailLogRetention
+            Status: Enabled
+            ExpirationInDays: 2555  # 7 years
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+              - TransitionInDays: 365
+                StorageClass: DEEP_ARCHIVE
+
+Outputs:
+  LambdaExecutionRoleArn:
+    Description: Lambda Execution Role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaExecutionRole'
+
+  DataProcessingRoleArn:
+    Description: Data Processing Role ARN
+    Value: !GetAtt DataProcessingRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-DataProcessingRole'
+
+  DataAnalystRoleArn:
+    Description: Data Analyst Role ARN
+    Value: !GetAtt DataAnalystRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-DataAnalystRole'
+
+  AdminRoleArn:
+    Description: Admin Role ARN
+    Value: !GetAtt AdminRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-AdminRole'
+
+  SecurityBoundaryPolicyArn:
+    Description: Security Boundary Policy ARN
+    Value: !Ref SecurityBoundaryPolicy
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityBoundaryPolicy'

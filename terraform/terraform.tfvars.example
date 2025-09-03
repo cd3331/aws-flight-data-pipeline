@@ -1,0 +1,290 @@
+# Flight Data Pipeline - Terraform Variables Example
+# Copy this file to terraform.tfvars and customize for your environment
+# WARNING: Do not commit terraform.tfvars to version control (contains sensitive data)
+
+#==============================================================================
+# CORE CONFIGURATION - REQUIRED
+#==============================================================================
+
+# Project identification
+project_name = "flight-data-pipeline"
+environment  = "dev"  # Change to: dev, staging, or prod
+aws_region   = "us-east-1"
+
+# Alerting configuration
+alert_email = "your-email@example.com"  # REQUIRED: Replace with your email
+# alert_phone_number = "+1234567890"    # Optional: SMS alerts for critical issues
+
+#==============================================================================
+# AUTHENTICATION & ACCESS - OPTIONAL
+#==============================================================================
+
+# Uncomment if using cross-account deployment
+# assume_role_arn = "arn:aws:iam::123456789012:role/TerraformExecutionRole"
+# assume_role_external_id = "unique-external-id"
+
+#==============================================================================
+# LAMBDA CONFIGURATION - CUSTOMIZABLE
+#==============================================================================
+
+lambda_config = {
+  # Data Ingestion Lambda - Fetches flight data from OpenSky API
+  ingestion = {
+    memory_size          = 512   # MB - Increase for faster API processing
+    timeout              = 300   # seconds (5 minutes)
+    reserved_concurrency = 10    # Limit concurrent executions
+  }
+  
+  # Data Processing Lambda - Converts JSON to Parquet, applies transformations
+  processing = {
+    memory_size          = 1024  # MB - Higher memory for pandas operations
+    timeout              = 900   # seconds (15 minutes)
+    reserved_concurrency = 5     # Process files sequentially
+  }
+  
+  # Data Quality Validation Lambda - Runs 16+ quality checks
+  validation = {
+    memory_size          = 768   # MB - Memory for data analysis
+    timeout              = 600   # seconds (10 minutes)
+    reserved_concurrency = 3     # Limit parallel validations
+  }
+  
+  # Common Lambda settings
+  runtime                = "python3.11"
+  architecture          = "x86_64"      # or "arm64" for cost savings
+  log_retention_days    = 14            # CloudWatch log retention
+  enable_xray_tracing   = false         # Enable for debugging
+  environment_variables = {
+    # Add custom environment variables here
+    # CUSTOM_SETTING = "value"
+  }
+}
+
+#==============================================================================
+# S3 CONFIGURATION - STORAGE SETTINGS
+#==============================================================================
+
+s3_config = {
+  # Security settings
+  enable_versioning    = true
+  enable_encryption   = true
+  kms_key_id         = "arn:aws:kms:*:*:alias/aws/s3"  # Use AWS managed key
+  
+  # Lifecycle management
+  enable_lifecycle_rules        = true
+  raw_data_expiration_days     = 90    # Delete raw data after 90 days
+  processed_data_expiration_days = 365  # Keep processed data for 1 year
+  incomplete_multipart_days    = 7     # Clean up failed uploads
+  
+  # Access control (recommended: keep all true for security)
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+  
+  # Monitoring (enable for production)
+  enable_access_logging   = false  # Set to true for audit trails
+  enable_request_metrics  = false  # Set to true for detailed S3 metrics
+}
+
+#==============================================================================
+# DATABASE CONFIGURATION
+#==============================================================================
+
+# DynamoDB for execution tracking
+dynamodb_config = {
+  billing_mode            = "PAY_PER_REQUEST"  # or "PROVISIONED" for predictable costs
+  read_capacity_units    = 0                  # Only used with PROVISIONED
+  write_capacity_units   = 0                  # Only used with PROVISIONED
+  enable_point_in_time_recovery = false       # Set true for production
+  enable_server_side_encryption = true
+  ttl_attribute          = "ttl"
+  ttl_enabled           = true                # Automatic data cleanup
+}
+
+# Optional RDS for advanced analytics (adds cost)
+create_rds_instance = false
+
+# RDS configuration (only used if create_rds_instance = true)
+rds_config = {
+  engine_version          = "15.4"
+  instance_class         = "db.t3.micro"        # Start small, scale up as needed
+  allocated_storage      = 20                  # GB
+  max_allocated_storage  = 100                 # GB - auto-scaling limit
+  backup_retention_period = 7                  # days
+  backup_window          = "03:00-04:00"       # UTC
+  maintenance_window     = "sun:04:00-sun:05:00" # UTC
+  multi_az              = false                # Set true for production HA
+  publicly_accessible   = false
+  deletion_protection   = false                # Set true for production
+}
+
+#==============================================================================
+# MONITORING & LOGGING
+#==============================================================================
+
+monitoring_config = {
+  # Log management
+  log_retention_days        = 30
+  enable_log_insights      = true   # Enable CloudWatch Insights queries
+  
+  # Metrics and alerting
+  enable_custom_metrics    = true
+  enable_detailed_monitoring = false  # Set true for production
+  
+  # Dashboard and visualization
+  create_dashboard        = true
+  dashboard_widgets      = ["lambda", "s3", "dynamodb", "errors"]
+  
+  # Cost monitoring
+  enable_cost_monitoring  = true
+  cost_threshold_usd     = 100    # Alert when monthly cost exceeds $100
+}
+
+#==============================================================================
+# SECURITY CONFIGURATION
+#==============================================================================
+
+security_config = {
+  # IAM security
+  enable_least_privilege_iam = true
+  iam_path_prefix           = "/flight-data-pipeline/"
+  
+  # VPC configuration (optional - adds complexity)
+  create_vpc               = false  # Set true for network isolation
+  vpc_cidr                = "10.0.0.0/16"
+  enable_nat_gateway       = false  # Required if create_vpc = true and Lambda needs internet
+  enable_vpc_endpoints     = false  # Set true to avoid NAT gateway costs
+  
+  # Encryption settings
+  enable_encryption_at_rest    = true
+  enable_encryption_in_transit = true
+  create_kms_key              = false  # Use AWS managed keys to reduce costs
+}
+
+#==============================================================================
+# COST OPTIMIZATION - ADJUST BASED ON USAGE
+#==============================================================================
+
+cost_optimization = {
+  # S3 cost optimization
+  enable_intelligent_tiering = false  # Set true for large datasets with varying access
+  enable_glacier_transitions = false  # Set true for long-term archival
+  
+  # Lambda cost optimization
+  enable_provisioned_concurrency = false  # Only for high-traffic workloads
+  use_arm_architecture          = false   # Set true for 20% cost savings (test compatibility first)
+  
+  # CloudWatch cost optimization
+  disable_detailed_monitoring   = true    # Reduces CloudWatch costs
+  reduce_log_retention         = false    # Set true for development environments
+  
+  # Development environment auto-shutdown
+  environment_auto_shutdown    = false    # Set true for dev/staging environments
+  auto_shutdown_schedule       = "cron(0 22 * * ? *)"  # 10 PM daily shutdown
+}
+
+#==============================================================================
+# FEATURE FLAGS - ENABLE/DISABLE COMPONENTS
+#==============================================================================
+
+feature_flags = {
+  # Core pipeline components
+  enable_data_ingestion    = true
+  enable_data_processing   = true
+  enable_data_validation   = true
+  enable_monitoring        = true
+  enable_alerting         = true
+  
+  # Optional advanced features
+  enable_api_gateway      = false  # Set true for REST API access
+  enable_kinesis_streaming = false # Set true for real-time streaming
+  enable_glue_catalog     = false  # Set true for data cataloging
+}
+
+#==============================================================================
+# DATA PROCESSING CONFIGURATION
+#==============================================================================
+
+data_processing_config = {
+  # Batch processing settings
+  batch_size                = 100   # Records per batch
+  max_batch_window_seconds = 60    # Max wait time for batch
+  
+  # Data quality thresholds
+  quality_threshold        = 0.8   # Overall quality score threshold
+  min_completeness_score   = 0.7   # Minimum field completeness required
+  max_error_rate          = 0.05   # Maximum acceptable error rate (5%)
+  
+  # Error handling
+  max_retry_attempts      = 3      # Retry failed operations
+  dead_letter_queue_retention_days = 14
+  
+  # Performance settings
+  parallel_processing_enabled = true
+  max_concurrent_executions   = 10
+}
+
+#==============================================================================
+# DEVELOPMENT & TESTING - DEV ENVIRONMENT ONLY
+#==============================================================================
+
+development_config = {
+  enable_debug_logging      = false  # Set true for detailed debugging
+  create_test_resources     = false  # Creates additional test resources
+  allow_destructive_changes = false  # Set true to allow resource deletion
+  enable_local_development  = false  # Enables local testing features
+}
+
+#==============================================================================
+# OPENSKY API CONFIGURATION
+#==============================================================================
+
+opensky_api_config = {
+  base_url              = "https://opensky-network.org/api"
+  request_timeout       = 30      # seconds
+  max_retries          = 3
+  rate_limit_per_hour  = 4000     # OpenSky free tier limit
+  enable_authentication = false   # Set true if you have OpenSky credentials
+}
+
+#==============================================================================
+# ADDITIONAL SETTINGS
+#==============================================================================
+
+# Additional tags for all resources
+additional_tags = {
+  # Department     = "DataEngineering"
+  # ContactPerson  = "john.doe@company.com"
+  # BusinessUnit   = "Analytics"
+  # CostAllocation = "DataInfrastructure"
+}
+
+# Development settings
+create_output_file = false  # Set true to generate infrastructure summary file
+enable_sns_alerts  = true   # Enable SNS alert subscriptions
+
+#==============================================================================
+# ENVIRONMENT-SPECIFIC EXAMPLES
+#==============================================================================
+
+# Example configurations for different environments:
+
+# DEVELOPMENT ENVIRONMENT:
+# - Lower resource allocations
+# - Shorter retention periods
+# - Basic monitoring
+# - Cost optimization enabled
+
+# STAGING ENVIRONMENT:
+# - Production-like configuration
+# - Reduced retention periods
+# - Full monitoring enabled
+# - Security hardening
+
+# PRODUCTION ENVIRONMENT:
+# - Full resource allocations
+# - Extended retention periods
+# - Detailed monitoring and alerting
+# - High availability features
+# - Enhanced security measures

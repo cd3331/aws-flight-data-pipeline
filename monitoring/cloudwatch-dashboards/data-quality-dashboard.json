@@ -1,0 +1,607 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataQualityScore", "DataType", "FlightPositions", {"stat": "Average"}],
+          [".", ".", ".", "FlightRoutes", {"stat": "Average"}],
+          [".", ".", ".", "AircraftInfo", {"stat": "Average"}],
+          [".", ".", ".", "AirportData", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "📊 Data Quality Score Over Time",
+        "yAxis": {
+          "left": {
+            "min": 90,
+            "max": 100,
+            "label": "Quality Score %"
+          }
+        },
+        "stat": "Average",
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Target: 98%",
+              "value": 98
+            },
+            {
+              "label": "Warning: 95%",
+              "value": 95
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataCompleteness", "Field", "Latitude", {"stat": "Average"}],
+          [".", ".", ".", "Longitude", {"stat": "Average"}],
+          [".", ".", ".", "Altitude", {"stat": "Average"}],
+          [".", ".", ".", "Velocity", {"stat": "Average"}],
+          [".", ".", ".", "Callsign", {"stat": "Average"}],
+          [".", ".", ".", "ICAO24", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "✅ Data Completeness by Field",
+        "yAxis": {
+          "left": {
+            "min": 80,
+            "max": 100,
+            "label": "Completeness %"
+          }
+        },
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "number",
+      "x": 0,
+      "y": 6,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataQualityScore", "DataType", "FlightPositions"]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "period": 300,
+        "stat": "Average",
+        "title": "📈 Current Quality Score",
+        "sparkline": true,
+        "trend": true,
+        "setPeriodToTimeRange": true
+      }
+    },
+    {
+      "type": "number",
+      "x": 6,
+      "y": 6,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "ValidationFailures", {"stat": "Sum"}]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "period": 3600,
+        "stat": "Sum",
+        "title": "❌ Validation Failures (Hourly)",
+        "sparkline": true,
+        "trend": true
+      }
+    },
+    {
+      "type": "number",
+      "x": 12,
+      "y": 6,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "AnomaliesDetected", {"stat": "Sum"}]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "period": 3600,
+        "stat": "Sum",
+        "title": "🚨 Anomalies Detected (Hourly)",
+        "sparkline": true,
+        "trend": true
+      }
+    },
+    {
+      "type": "number",
+      "x": 18,
+      "y": 6,
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataFreshnessScore", {"stat": "Average"}]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "period": 300,
+        "stat": "Average",
+        "title": "⏰ Data Freshness Score",
+        "sparkline": true,
+        "trend": true
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "ValidationFailures", "ValidationRule", "CoordinateRange", {"stat": "Sum"}],
+          [".", ".", ".", "AltitudeRange", {"stat": "Sum"}],
+          [".", ".", ".", "VelocityRange", {"stat": "Sum"}],
+          [".", ".", ".", "CallsignFormat", {"stat": "Sum"}],
+          [".", ".", ".", "TimestampValidity", {"stat": "Sum"}],
+          [".", ".", ".", "ICAO24Format", {"stat": "Sum"}]
+        ],
+        "view": "timeSeries",
+        "stacked": true,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "🔍 Validation Failures by Rule",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Failure Count"
+          }
+        },
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "AnomaliesDetected", "AnomalyType", "SuddenAltitudeChange", {"stat": "Sum"}],
+          [".", ".", ".", "ExtremeVelocity", {"stat": "Sum"}],
+          [".", ".", ".", "ImpossibleLocation", {"stat": "Sum"}],
+          [".", ".", ".", "TimeTravel", {"stat": "Sum"}],
+          [".", ".", ".", "DuplicateData", {"stat": "Sum"}]
+        ],
+        "view": "timeSeries",
+        "stacked": true,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "🚨 Anomaly Detection by Type",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Anomaly Count"
+          }
+        },
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 12,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataAccuracy", "DataSource", "OpenSkyNetwork", {"stat": "Average"}],
+          [".", ".", ".", "ADSBExchange", {"stat": "Average"}],
+          [".", ".", ".", "AirportDatabase", {"stat": "Average"}],
+          [".", ".", ".", "AircraftDatabase", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "🎯 Data Accuracy by Source",
+        "yAxis": {
+          "left": {
+            "min": 90,
+            "max": 100,
+            "label": "Accuracy %"
+          }
+        },
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 18,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "RecordsProcessed", "ProcessingStage", "RawIngestion", {"stat": "Sum"}],
+          [".", ".", ".", "ValidationPassed", {"stat": "Sum"}],
+          [".", ".", ".", "EnrichmentCompleted", {"stat": "Sum"}],
+          [".", ".", ".", "StoredSuccessfully", {"stat": "Sum"}],
+          [".", ".", ".", "RejectedInvalid", {"stat": "Sum", "yAxis": "right"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "📊 Data Pipeline Processing Funnel",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Records Processed"
+          },
+          "right": {
+            "min": 0,
+            "label": "Records Rejected"
+          }
+        },
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 18,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataLatency", "Stage", "IngestionToValidation", {"stat": "Average"}],
+          [".", ".", ".", "ValidationToEnrichment", {"stat": "Average"}],
+          [".", ".", ".", "EnrichmentToStorage", {"stat": "Average"}],
+          [".", ".", ".", "StorageToAPI", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "⏱️ Data Processing Latency by Stage",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Seconds"
+          }
+        },
+        "stat": "Average",
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "SLA: 30 seconds total",
+              "value": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 24,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataFreshness", "DataType", "FlightPositions", {"stat": "Average"}],
+          [".", ".", ".", "FlightRoutes", {"stat": "Average"}],
+          [".", ".", ".", "AircraftInfo", {"stat": "Average"}],
+          [".", ".", ".", "AirportData", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "⏰ Data Age (Freshness)",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Seconds Since Update"
+          }
+        },
+        "stat": "Average",
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Target: 30 seconds",
+              "value": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 24,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "SchemaViolations", "Schema", "FlightDataV1", {"stat": "Sum"}],
+          [".", ".", ".", "AirportDataV1", {"stat": "Sum"}],
+          [".", ".", ".", "AircraftDataV1", {"stat": "Sum"}],
+          [".", ".", ".", "RouteDataV1", {"stat": "Sum"}]
+        ],
+        "view": "timeSeries",
+        "stacked": true,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "📋 Schema Violations by Type",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Violation Count"
+          }
+        },
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 24,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataDuplication", "DeduplicationStage", "IngestionLevel", {"stat": "Sum"}],
+          [".", ".", ".", "ValidationLevel", {"stat": "Sum"}],
+          [".", ".", ".", "StorageLevel", {"stat": "Sum"}]
+        ],
+        "view": "timeSeries",
+        "stacked": true,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "🔄 Duplicate Records Detected",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Duplicate Count"
+          }
+        },
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 30,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "OutlierDetection", "Field", "Altitude", {"stat": "Sum"}],
+          [".", ".", ".", "Velocity", {"stat": "Sum"}],
+          [".", ".", ".", "Coordinates", {"stat": "Sum"}],
+          [".", ".", ".", "Heading", {"stat": "Sum"}],
+          [".", ".", ".", "VerticalRate", {"stat": "Sum"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "📊 Statistical Outliers by Field",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "Outlier Count"
+          }
+        },
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 30,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataConsistency", "ConsistencyCheck", "TemporalConsistency", {"stat": "Average"}],
+          [".", ".", ".", "SpatialConsistency", {"stat": "Average"}],
+          [".", ".", ".", "ReferentialIntegrity", {"stat": "Average"}],
+          [".", ".", ".", "BusinessRuleCompliance", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "🔗 Data Consistency Scores",
+        "yAxis": {
+          "left": {
+            "min": 90,
+            "max": 100,
+            "label": "Consistency Score %"
+          }
+        },
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "log",
+      "x": 0,
+      "y": 36,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE '/aws/lambda/flight-data-processor-prod'\n| fields @timestamp, @message\n| filter @message like /VALIDATION_FAILURE/ or @message like /ANOMALY_DETECTED/ or @message like /DATA_QUALITY_ALERT/\n| sort @timestamp desc\n| limit 100",
+        "region": "us-east-1",
+        "title": "🔍 Recent Data Quality Issues",
+        "view": "table"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 42,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataEnrichmentSuccess", "EnrichmentType", "AircraftDetails", {"stat": "Average"}],
+          [".", ".", ".", "RouteInformation", {"stat": "Average"}],
+          [".", ".", ".", "AirportDetails", {"stat": "Average"}],
+          [".", ".", ".", "WeatherData", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 300,
+        "title": "🔧 Data Enrichment Success Rate",
+        "yAxis": {
+          "left": {
+            "min": 80,
+            "max": 100,
+            "label": "Success Rate %"
+          }
+        },
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 42,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataCoverage", "Region", "NorthAmerica", {"stat": "Average"}],
+          [".", ".", ".", "Europe", {"stat": "Average"}],
+          [".", ".", ".", "AsiaPacific", {"stat": "Average"}],
+          [".", ".", ".", "MiddleEast", {"stat": "Average"}],
+          [".", ".", ".", "Africa", {"stat": "Average"}],
+          [".", ".", ".", "SouthAmerica", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 3600,
+        "title": "🌍 Geographic Data Coverage",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 100,
+            "label": "Coverage %"
+          }
+        },
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 42,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataRetention", "RetentionPolicy", "RealTimeData", {"stat": "Average"}],
+          [".", ".", ".", "HistoricalData", {"stat": "Average"}],
+          [".", ".", ".", "ArchiveData", {"stat": "Average"}],
+          [".", ".", ".", "BackupData", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 86400,
+        "title": "💾 Data Retention Compliance",
+        "yAxis": {
+          "left": {
+            "min": 95,
+            "max": 100,
+            "label": "Compliance %"
+          }
+        },
+        "stat": "Average"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 48,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["FlightDataPipeline", "DataQualityTrend", "TimeWindow", "1Hour", {"stat": "Average"}],
+          [".", ".", ".", "6Hours", {"stat": "Average"}],
+          [".", ".", ".", "24Hours", {"stat": "Average"}],
+          [".", ".", ".", "7Days", {"stat": "Average"}]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "us-east-1",
+        "period": 3600,
+        "title": "📈 Data Quality Trend Analysis",
+        "yAxis": {
+          "left": {
+            "min": 90,
+            "max": 100,
+            "label": "Quality Score %"
+          }
+        },
+        "stat": "Average",
+        "annotations": {
+          "horizontal": [
+            {
+              "label": "Target Quality",
+              "value": 98
+            },
+            {
+              "label": "Warning Threshold",
+              "value": 95
+            },
+            {
+              "label": "Critical Threshold",
+              "value": 90
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "annotations": {
+    "horizontal": [],
+    "vertical": []
+  },
+  "yAxis": {
+    "left": {
+      "min": 0
+    }
+  },
+  "period": 300,
+  "stat": "Average",
+  "region": "us-east-1",
+  "title": "📊 Flight Data Pipeline - Data Quality Dashboard",
+  "start": "-PT6H",
+  "end": "PT0H",
+  "liveData": true,
+  "timezone": "UTC"
+}
