@@ -1210,4 +1210,10 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 <a href="https://api.flightdata-pipeline.com/v1/docs">Try the API</a>
 </sub>
 
-</div>
+</div>## 🎯 Pipeline Status: OPERATIONAL
+
+- **Last Run**: Wed Sep  3 17:21:00 EDT 2025
+- **Records Processed**: 10,471
+- **Data Volume**: 5.1 MB
+- **Success Rate**: 100%
+- **Processing Time**: < 5 seconds
