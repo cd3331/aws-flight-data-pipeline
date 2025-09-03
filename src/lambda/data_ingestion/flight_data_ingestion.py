@@ -16,21 +16,19 @@ logger.setLevel(logging.INFO)
 class FlightDataIngestion:
     def __init__(self):
         self.s3_client = boto3.client('s3')
-        self.dynamodb = boto3.resource('dynamodb')
-        self.cloudwatch = boto3.client('cloudwatch')
         
         # Environment variables
         self.raw_bucket = os.environ.get('RAW_DATA_BUCKET')
-        self.tracking_table = os.environ.get('TRACKING_TABLE')
         self.opensky_api_url = "https://opensky-network.org/api/states/all"
         self.timeout = int(os.environ.get('API_TIMEOUT', 30))
         self.max_retries = int(os.environ.get('MAX_RETRIES', 3))
         
-        if not self.raw_bucket or not self.tracking_table:
-            raise ValueError("Required environment variables RAW_DATA_BUCKET and TRACKING_TABLE must be set")
+        if not self.raw_bucket:
+            raise ValueError("Required environment variable RAW_DATA_BUCKET must be set")
         
-        # DynamoDB table
-        self.table = self.dynamodb.Table(self.tracking_table)
+        # Debug: Print bucket name
+        print(f"DEBUG: Using S3 bucket: {self.raw_bucket}")
+        logger.info(f"Using S3 bucket: {self.raw_bucket}")
     
     def fetch_flight_data(self) -> Tuple[Optional[Dict], Optional[str]]:
         """
@@ -222,170 +220,63 @@ class FlightDataIngestion:
         try:
             json_data = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
             
+            logger.info(f"Storing data in S3 bucket: {self.raw_bucket}, key: {s3_key}")
+            logger.info(f"Data size: {len(json_data)} characters")
+            
             self.s3_client.put_object(
                 Bucket=self.raw_bucket,
                 Key=s3_key,
                 Body=json_data,
-                ContentType='application/json',
-                Metadata={
-                    'ingestion-timestamp': data['metadata']['ingestion_timestamp'],
-                    'total-records': str(data['metadata']['total_records']),
-                    'valid-records': str(data['metadata']['valid_records']),
-                    'source': data['metadata']['source']
-                }
+                ContentType='application/json'
             )
             
             logger.info(f"Successfully stored data in S3: s3://{self.raw_bucket}/{s3_key}")
             return True
             
-        except ClientError as e:
+        except Exception as e:
             logger.error(f"Failed to store data in S3: {str(e)}")
             return False
     
-    def track_execution(self, execution_id: str, s3_key: str, metadata: Dict, status: str, error_message: Optional[str] = None) -> None:
-        """
-        Track execution details in DynamoDB
-        
-        Args:
-            execution_id: Unique execution identifier
-            s3_key: S3 key where data was stored
-            metadata: Execution metadata
-            status: Execution status (SUCCESS, ERROR)
-            error_message: Error message if status is ERROR
-        """
-        try:
-            item = {
-                'execution_id': execution_id,
-                'timestamp': int(datetime.now(timezone.utc).timestamp()),
-                'iso_timestamp': datetime.now(timezone.utc).isoformat(),
-                'status': status,
-                'function_name': 'flight_data_ingestion',
-                'metadata': metadata
-            }
-            
-            if s3_key:
-                item['s3_key'] = s3_key
-                item['s3_bucket'] = self.raw_bucket
-            
-            if error_message:
-                item['error_message'] = error_message
-            
-            self.table.put_item(Item=item)
-            logger.info(f"Execution tracking recorded: {execution_id}")
-            
-        except ClientError as e:
-            logger.error(f"Failed to track execution in DynamoDB: {str(e)}")
-    
-    def publish_metrics(self, metadata: Dict, execution_time: float, status: str) -> None:
-        """
-        Publish metrics to CloudWatch
-        
-        Args:
-            metadata: Execution metadata
-            execution_time: Total execution time in seconds
-            status: Execution status
-        """
-        try:
-            metrics = [
-                {
-                    'MetricName': 'ExecutionTime',
-                    'Value': execution_time,
-                    'Unit': 'Seconds',
-                    'Dimensions': [
-                        {'Name': 'FunctionName', 'Value': 'flight_data_ingestion'},
-                        {'Name': 'Status', 'Value': status}
-                    ]
-                },
-                {
-                    'MetricName': 'RecordsProcessed',
-                    'Value': metadata.get('total_records', 0),
-                    'Unit': 'Count',
-                    'Dimensions': [
-                        {'Name': 'FunctionName', 'Value': 'flight_data_ingestion'}
-                    ]
-                },
-                {
-                    'MetricName': 'ValidRecords',
-                    'Value': metadata.get('valid_records', 0),
-                    'Unit': 'Count',
-                    'Dimensions': [
-                        {'Name': 'FunctionName', 'Value': 'flight_data_ingestion'}
-                    ]
-                },
-                {
-                    'MetricName': 'DataQualityRatio',
-                    'Value': metadata.get('data_quality_ratio', 0),
-                    'Unit': 'Percent',
-                    'Dimensions': [
-                        {'Name': 'FunctionName', 'Value': 'flight_data_ingestion'}
-                    ]
-                }
-            ]
-            
-            self.cloudwatch.put_metric_data(
-                Namespace='FlightDataPipeline/Ingestion',
-                MetricData=metrics
-            )
-            
-            logger.info("Metrics published to CloudWatch")
-            
-        except ClientError as e:
-            logger.error(f"Failed to publish metrics to CloudWatch: {str(e)}")
 
 
 def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     """
-    Lambda handler for flight data ingestion
-    
-    Args:
-        event: Lambda event data
-        context: Lambda context
-        
-    Returns:
-        Response dictionary
+    Simplified Lambda handler for flight data ingestion
     """
-    start_time = time.time()
     execution_id = str(uuid.uuid4())
-    
     logger.info(f"Starting flight data ingestion - Execution ID: {execution_id}")
     
     try:
+        # Initialize ingestion class (uses RAW_DATA_BUCKET environment variable)
         ingestion = FlightDataIngestion()
         
-        # Fetch flight data
+        # Fetch flight data from OpenSky API
         raw_data, error_msg = ingestion.fetch_flight_data()
         if error_msg:
-            raise Exception(f"Failed to fetch flight data: {error_msg}")
+            logger.error(f"Failed to fetch flight data: {error_msg}")
+            raise Exception(f"API fetch failed: {error_msg}")
         
-        # Validate and enrich data
-        enriched_data = ingestion.validate_and_enrich_data(raw_data)
+        # Validate and enrich the flight data
+        try:
+            enriched_data = ingestion.validate_and_enrich_data(raw_data)
+        except Exception as e:
+            logger.error(f"Data validation failed: {str(e)}")
+            raise Exception(f"Data validation failed: {str(e)}")
         
-        # Generate S3 key
+        # Generate partitioned S3 key and store data
         s3_key = ingestion.generate_s3_key(enriched_data['time'])
-        
-        # Store data in S3
         if not ingestion.store_data_in_s3(enriched_data, s3_key):
-            raise Exception("Failed to store data in S3")
+            logger.error("S3 storage failed")
+            raise Exception("S3 storage failed")
         
-        # Calculate execution time
-        execution_time = time.time() - start_time
+        # Optional DynamoDB tracking (continue if it fails)
+        try:
+            # DynamoDB tracking would go here if implemented
+            logger.info("DynamoDB tracking skipped (not implemented)")
+        except Exception as e:
+            logger.warning(f"DynamoDB tracking failed, continuing: {str(e)}")
         
-        # Track execution
-        ingestion.track_execution(
-            execution_id=execution_id,
-            s3_key=s3_key,
-            metadata=enriched_data['metadata'],
-            status='SUCCESS'
-        )
-        
-        # Publish metrics
-        ingestion.publish_metrics(
-            metadata=enriched_data['metadata'],
-            execution_time=execution_time,
-            status='SUCCESS'
-        )
-        
-        logger.info(f"Flight data ingestion completed successfully in {execution_time:.2f} seconds")
+        logger.info("Flight data ingestion completed successfully")
         
         return {
             'statusCode': 200,
@@ -393,46 +284,20 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
                 'execution_id': execution_id,
                 'status': 'SUCCESS',
                 's3_key': s3_key,
-                'execution_time': execution_time,
                 'records_processed': enriched_data['metadata']['total_records'],
-                'valid_records': enriched_data['metadata']['valid_records'],
-                'data_quality_ratio': enriched_data['metadata']['data_quality_ratio']
+                'valid_records': enriched_data['metadata']['valid_records']
             })
         }
         
     except Exception as e:
-        execution_time = time.time() - start_time
         error_msg = str(e)
         logger.error(f"Flight data ingestion failed: {error_msg}")
-        
-        try:
-            ingestion = FlightDataIngestion()
-            
-            # Track failed execution
-            ingestion.track_execution(
-                execution_id=execution_id,
-                s3_key=None,
-                metadata={'error': error_msg},
-                status='ERROR',
-                error_message=error_msg
-            )
-            
-            # Publish error metrics
-            ingestion.publish_metrics(
-                metadata={'total_records': 0, 'valid_records': 0, 'data_quality_ratio': 0},
-                execution_time=execution_time,
-                status='ERROR'
-            )
-            
-        except Exception as track_error:
-            logger.error(f"Failed to track error execution: {str(track_error)}")
         
         return {
             'statusCode': 500,
             'body': json.dumps({
                 'execution_id': execution_id,
                 'status': 'ERROR',
-                'error_message': error_msg,
-                'execution_time': execution_time
+                'error_message': error_msg
             })
         }
