@@ -38,7 +38,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
+        pip install -r requirements.txt
         pip install pylint black isort bandit safety mypy
 
     - name: Code formatting with Black
@@ -118,7 +118,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install -r requirements.txt
         pip install pytest pytest-cov pytest-mock pytest-asyncio
 
     - name: Run unit tests with coverage
@@ -186,7 +186,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install -r requirements.txt
         pip install pytest pytest-asyncio boto3 moto
 
     - name: Wait for LocalStack to be ready
@@ -248,7 +248,7 @@ jobs:
         echo "Testing Lambda package creation..."
         
         # Create deployment packages for each Lambda function
-        for function_dir in lambda/*/; do
+        for function_dir in src/lambda/*/; do
           if [ -d "$function_dir" ]; then
             function_name=$(basename "$function_dir")
             echo "Building package for $function_name..."
@@ -305,22 +305,22 @@ jobs:
     - name: Terraform Format Check
       run: |
         echo "Checking Terraform formatting..."
-        terraform fmt -check -recursive infrastructure/
+        terraform fmt -check -recursive terraform/
 
     - name: Terraform Init
       run: |
-        cd infrastructure/
+        cd terraform/
         terraform init -backend=false
 
     - name: Terraform Validate
       run: |
-        cd infrastructure/
+        cd terraform/
         terraform validate
 
     - name: Terraform Plan (Dry Run)
       run: |
-        cd infrastructure/
-        terraform plan -var-file=environments/dev.tfvars -out=tfplan
+        cd terraform/
+        terraform plan -out=tfplan
       env:
         TF_VAR_aws_region: us-east-1
         TF_VAR_environment: dev
@@ -329,7 +329,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: terraform-plan-dev
-        path: infrastructure/tfplan
+        path: terraform/tfplan
 
   # Documentation Tests
   docs-tests:
