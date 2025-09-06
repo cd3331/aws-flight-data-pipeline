@@ -1,1 +1,1 @@
-{"errorMessage": "Unable to import module 'flight_data_ingestion': No module named 'requests'", "errorType": "Runtime.ImportModuleError", "requestId": "", "stackTrace": []}
+{"statusCode": 200, "body": "{\"execution_id\": \"4439f6ca-c2e1-4f3c-b55b-1a30e95d5ecb\", \"status\": \"SUCCESS\", \"s3_key\": \"year=2025/month=09/day=06/hour=15/flight_data_20250906_155520_a762c58e.json\", \"records_processed\": 11524, \"valid_records\": 11524}"}

@@ -1,0 +1,6 @@
+{
+    "MAX_RETRIES": "3",
+    "ENVIRONMENT": "dev",
+    "RAW_DATA_BUCKET": "flight-data-pipeline-dev-raw-data-y10swyy3",
+    "API_TIMEOUT": "60"
+}
