@@ -579,7 +579,13 @@
                 
                 console.log('📡 API response received, parsing JSON...');
                 const result = await response.json();
-                console.log('✅ API response:', result);
+                console.log('✅ API response received:', {
+                    bucket_name: result.bucket_name,
+                    latest_file_key: result.latest_file_key,
+                    file_size_bytes: result.file_size_bytes,
+                    last_modified: result.last_modified,
+                    message: result.message
+                });
                 
                 // Transform the API response to match dashboard expectations
                 const processedData = {
@@ -587,7 +593,9 @@
                         s3_key: result.latest_file_key || 'Unknown',
                         records_processed: Math.floor(result.file_size_bytes / 200) || 0, // Estimate records from file size
                         valid_records: Math.floor(result.file_size_bytes / 200) || 0,
-                        last_modified: result.last_modified || new Date().toISOString()
+                        last_modified: result.last_modified || new Date().toISOString(),
+                        execution_id: 'live-api-fetch',
+                        status: 'SUCCESS'
                     },
                     statistics: {
                         total_flights: Math.floor(result.file_size_bytes / 200) || 0, // Estimate from file size
@@ -625,9 +633,9 @@
                         data_timestamp: result.last_modified || new Date().toISOString()
                     },
                     metadata: {
-                        bucket_name: result.bucket_name,
-                        file_size_bytes: result.file_size_bytes,
-                        message: result.message
+                        bucket_name: result.bucket_name || 'Unknown',
+                        file_size_bytes: result.file_size_bytes || 0,
+                        message: result.message || 'Data retrieved successfully'
                     }
                 };
                 
@@ -772,11 +780,14 @@
                             </div>
                         </div>
                         <div style="margin-top: 20px;">
+                            <p><strong>Execution ID:</strong> ${executionResult.execution_id || 'live-api-fetch'}</p>
+                            <p><strong>Status:</strong> <span class="status-badge status-success">${executionResult.status || 'Success'}</span></p>
                             <p><strong>S3 Key:</strong> ${executionResult.s3_key}</p>
-                            <p><strong>Status:</strong> <span class="status-badge status-success">Success</span></p>
-                            <p><strong>Estimated Records:</strong> ${formatNumber(executionResult.valid_records)} (from ${((processedData.metadata?.file_size_bytes || 0) / (1024*1024)).toFixed(2)} MB file)</p>
-                            <p><strong>Last Updated:</strong> ${formatDateTime(executionResult.last_modified)}</p>
-                            <p><strong>Data Source:</strong> Live API - ${processedData.metadata?.bucket_name || 'S3 Bucket'}</p>
+                            <p><strong>File Size:</strong> ${((processedData.metadata?.file_size_bytes || 0) / (1024*1024)).toFixed(2)} MB</p>
+                            <p><strong>Estimated Records:</strong> ${formatNumber(executionResult.valid_records)}</p>
+                            <p><strong>Last Modified:</strong> ${formatDateTime(executionResult.last_modified)}</p>
+                            <p><strong>Bucket:</strong> ${processedData.metadata?.bucket_name || 'Unknown'}</p>
+                            ${processedData.metadata?.message ? `<p><strong>Message:</strong> ${processedData.metadata.message}</p>` : ''}
                         </div>
                     `;
                 }
