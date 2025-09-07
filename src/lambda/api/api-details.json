@@ -1,0 +1,15 @@
+{
+    "id": "acikl2oamh",
+    "name": "flight-data-api",
+    "description": "API for flight data dashboard",
+    "createdDate": "2025-09-06T19:15:34-04:00",
+    "apiKeySource": "HEADER",
+    "endpointConfiguration": {
+        "types": [
+            "REGIONAL"
+        ],
+        "ipAddressType": "ipv4"
+    },
+    "disableExecuteApiEndpoint": false,
+    "rootResourceId": "0mkzlpbd28"
+}

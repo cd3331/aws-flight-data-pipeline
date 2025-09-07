@@ -513,7 +513,7 @@
         const CONFIG = {
             BUCKET_NAME: 'flight-data-pipeline-dev-raw-data-y10swyy3',
             REGION: 'us-east-1',
-            API_BASE: '' // Use relative URLs for API calls
+            API_BASE: 'https://$API_ID.execute-api.us-east-1.amazonaws.com/prod'
         };
 
         // Global variables for flight data
@@ -568,7 +568,7 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
                 
-                const response = await fetch('/api/flight-summary', {
+                const response = await fetch(`${CONFIG.API_BASE}/data`, {
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
@@ -856,7 +856,7 @@
         async function fetchLocalStatistics() {
             try {
                 console.log('Fetching statistics from API...');
-                const response = await fetch('/api/latest-stats');
+                const response = await fetch(`${CONFIG.API_BASE}/data`);
                 const result = await response.json();
                 
                 if (!result.success) {
