@@ -87,7 +87,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 def get_latest_file_metadata(bucket_name: str) -> Dict[str, Any]:
     """
-    Get the latest flight data file and process it into comprehensive statistics.
+    Get the latest OpenSky flight data file and process it into comprehensive statistics.
 
     Args:
         bucket_name: Name of the S3 bucket
@@ -95,21 +95,43 @@ def get_latest_file_metadata(bucket_name: str) -> Dict[str, Any]:
     Returns:
         Dict containing processed flight statistics
     """
-    # List objects in the bucket (limit to first page for speed)
-    response = s3_client.list_objects_v2(
+    # List objects in the bucket, filtering for actual OpenSky flight data files
+    # Use pagination to get ALL objects since there are many files
+    all_objects = []
+    paginator = s3_client.get_paginator('list_objects_v2')
+    page_iterator = paginator.paginate(
         Bucket=bucket_name,
-        MaxKeys=1000  # Get enough to find the latest
+        Prefix='year='  # OpenSky files are stored with year= prefix
     )
 
-    if 'Contents' not in response or not response['Contents']:
+    for page in page_iterator:
+        if 'Contents' in page:
+            all_objects.extend(page['Contents'])
+
+    if not all_objects:
         raise ClientError(
-            error_response={'Error': {'Code': 'NoSuchKey', 'Message': 'No files found in bucket'}},
+            error_response={'Error': {'Code': 'NoSuchKey', 'Message': 'No OpenSky flight data files found in bucket'}},
             operation_name='list_objects_v2'
         )
 
-    # Sort by last modified (newest first) and get the latest
-    latest_object = max(response['Contents'], key=lambda x: x['LastModified'])
+    # Filter for actual flight data files (not latest.json or other files)
+    flight_data_files = [
+        obj for obj in all_objects
+        if 'flight_data_' in obj['Key'] and obj['Key'].endswith('.json')
+    ]
+
+    if not flight_data_files:
+        raise ClientError(
+            error_response={'Error': {'Code': 'NoSuchKey', 'Message': 'No OpenSky flight_data_*.json files found'}},
+            operation_name='list_objects_v2'
+        )
+
+    # Sort by last modified (newest first) and get the latest OpenSky file
+    latest_object = max(flight_data_files, key=lambda x: x['LastModified'])
     latest_key = latest_object['Key']
+
+    logger.info(f"Found {len(flight_data_files)} flight data files")
+    logger.info(f"Using latest OpenSky file: {latest_key} (size: {latest_object['Size']} bytes, modified: {latest_object['LastModified']})")
 
     logger.info(f"Processing flight data from: {latest_key}")
 
