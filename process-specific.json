@@ -1,0 +1,8 @@
+{
+  "Records": [{
+    "s3": {
+      "bucket": {"name": "flight-data-pipeline-dev-raw-data-y10swyy3"},
+      "object": {"key": "year=2025/month=09/day=18/hour=16/flight_data_20250918_163847_2794ff06.json"}
+    }
+  }]
+}

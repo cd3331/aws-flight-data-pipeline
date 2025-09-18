@@ -1,0 +1,9 @@
+venv/
+.git/
+*.pyc
+__pycache__/
+.terraform/
+deployment-packages/
+*.tfstate*
+*.zip
+node_modules/

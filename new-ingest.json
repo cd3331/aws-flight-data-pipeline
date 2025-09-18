@@ -1,0 +1,1 @@
+{"statusCode": 500, "body": "{\"execution_id\": \"c42a0827-a8e3-4dfc-a87c-aa35b85c4244\", \"status\": \"ERROR\", \"error_message\": \"API fetch failed: Request timeout after 60 seconds\"}"}

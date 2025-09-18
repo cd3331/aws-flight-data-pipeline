@@ -18,7 +18,7 @@ s3_client = boto3.client('s3', config=boto3.session.Config(
 
 # Configuration
 BUCKET_NAME = 'flight-data-pipeline-dev-raw-data-y10swyy3'
-ALLOWED_ORIGIN = 'https://main.d2zdmzm6s2zgyk.amplifyapp.com'
+ALLOWED_ORIGIN = '*'  # Temporarily allow all origins for debugging
 
 # Sample static data fallback
 SAMPLE_DATA = {
@@ -39,14 +39,18 @@ def timeout_handler(signum, frame):
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     AWS Lambda function to return metadata about the latest flight data file in S3.
-    
+
     Args:
         event: Lambda event object
         context: Lambda context object
-    
+
     Returns:
         Dict containing metadata about the latest file in S3
     """
+    # Handle CORS preflight requests
+    if event.get('httpMethod') == 'OPTIONS':
+        return create_response(200, {'message': 'CORS preflight'})
+
     # Set up timeout handler (2.5 seconds to leave buffer for response)
     signal.signal(signal.SIGALRM, timeout_handler)
     signal.alarm(2)

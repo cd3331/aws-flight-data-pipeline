@@ -1,0 +1,1 @@
+{"statusCode": 200, "body": "{\"execution_id\": \"0f323956-f3b8-4733-b4c0-5d55467eaee6\", \"status\": \"SUCCESS\", \"s3_key\": \"year=2025/month=09/day=18/hour=18/flight_data_20250918_184709_e66f2c1c.json\", \"records_processed\": 12154, \"valid_records\": 12154}"}
