@@ -1031,22 +1031,45 @@
                 const response = await fetch(`${CONFIG.API_BASE}/data`);
                 const data = await response.json();
 
+                // Check if we have the new processed statistics format
+                if (data.statistics && data.executionResult) {
+                    console.log('✅ Received real flight statistics!');
+                    const stats = data.statistics;
+                    const exec = data.executionResult;
+
+                    // Update key metrics with REAL flight data
+                    document.getElementById('records-processed').textContent = formatNumber(exec.records_processed || 0);
+                    document.getElementById('total-flights').textContent = formatNumber(stats.total_flights || 0);
+                    document.getElementById('execution-id').textContent = exec.execution_id || 'live-data';
+                    document.getElementById('s3-key').textContent = exec.s3_key || 'latest.json';
+                    document.getElementById('valid-records').textContent = `${formatNumber(exec.valid_records || 0)} / ${formatNumber(exec.records_processed || 0)}`;
+                    document.getElementById('last-updated').textContent = new Date(exec.last_modified || data.statistics.data_timestamp).toLocaleString();
+
+                    console.log(`✅ Updated with REAL flight data: ${formatNumber(stats.total_flights)} actual flights!`);
+                    return true;
+                }
+
+                // Fallback for old metadata format
                 if (data.file_size_bytes) {
+                    console.log('⚠️ Using estimated data from file size');
                     const estimatedFlights = Math.floor(data.file_size_bytes / 200);
 
-                    // Update key metrics with live data
                     document.getElementById('records-processed').textContent = formatNumber(estimatedFlights);
                     document.getElementById('total-flights').textContent = formatNumber(estimatedFlights);
-                    document.getElementById('execution-id').textContent = `live-${Date.now()}`;
+                    document.getElementById('execution-id').textContent = `estimated-${Date.now()}`;
                     document.getElementById('s3-key').textContent = data.latest_file_key || 'latest.json';
                     document.getElementById('valid-records').textContent = `${formatNumber(estimatedFlights)} / ${formatNumber(estimatedFlights)}`;
                     document.getElementById('last-updated').textContent = new Date(data.last_modified).toLocaleString();
 
-                    console.log(`✅ Updated with live data: ${estimatedFlights} estimated flights`);
+                    console.log(`📊 Updated with estimated data: ${estimatedFlights} estimated flights`);
+                    return false;
                 }
+
+                throw new Error('Invalid API response format');
             } catch (error) {
                 console.error('Failed to load live data:', error);
                 // Keep existing static data as fallback
+                return false;
             }
         }
 
