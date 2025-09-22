@@ -1016,13 +1016,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 </div>
 
----
-
-## 🎯 Current Pipeline Status
-
-- **🟢 Status**: OPERATIONAL  
-- **📅 Last Successful Run**: September 6, 2025 15:55:20 UTC
-- **📊 Records Processed**: 11,524 flight records
-- **🌍 Coverage**: 118 countries tracked
-- **⚡ Processing Time**: 4.2 seconds
-- **💯 Success Rate**: 100%
