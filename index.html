@@ -215,6 +215,22 @@
             margin-top: 40px;
         }
 
+        .architecture-diagram {
+            margin: 30px 0;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .architecture-diagram svg {
+            width: 100%;
+            height: auto;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: block;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -235,6 +251,109 @@
         <div class="header">
             <h1>✈️ Flight Data Pipeline</h1>
             <p>Real-time Aviation Data from OpenSky Network</p>
+
+            <!-- Architecture Diagram -->
+            <div class="architecture-diagram">
+                <svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#304CB2;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#3453C4;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="secondaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#E51D23;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#c91a20;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#F9B612;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#e6a310;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="rgba(0,0,0,0.3)"/>
+                        </filter>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7"
+                                refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" />
+                        </marker>
+                    </defs>
+
+                    <!-- Background -->
+                    <rect width="1000" height="300" fill="url(#primaryGradient)" rx="10"/>
+
+                    <!-- Step 1: OpenSky API -->
+                    <g transform="translate(50, 100)">
+                        <rect width="120" height="80" rx="15" fill="#FFFFFF" filter="url(#shadow)" stroke="#304CB2" stroke-width="2"/>
+                        <text x="60" y="30" text-anchor="middle" fill="#304CB2" font-size="12" font-weight="600">OpenSky</text>
+                        <text x="60" y="45" text-anchor="middle" fill="#304CB2" font-size="12" font-weight="600">Network</text>
+                        <text x="60" y="60" text-anchor="middle" fill="#111111" font-size="10">API Data</text>
+                        <circle cx="25" cy="25" r="8" fill="#F9B612"/>
+                        <text x="25" y="30" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">🌐</text>
+                    </g>
+
+                    <!-- Arrow 1 -->
+                    <line x1="170" y1="140" x2="230" y2="140" stroke="#FFFFFF" stroke-width="3" marker-end="url(#arrowhead)"/>
+                    <text x="200" y="130" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="500">Real-time</text>
+
+                    <!-- Step 2: Lambda Functions -->
+                    <g transform="translate(250, 100)">
+                        <rect width="120" height="80" rx="15" fill="#FFFFFF" filter="url(#shadow)" stroke="#E51D23" stroke-width="2"/>
+                        <text x="60" y="30" text-anchor="middle" fill="#E51D23" font-size="12" font-weight="600">Lambda</text>
+                        <text x="60" y="45" text-anchor="middle" fill="#E51D23" font-size="12" font-weight="600">Functions</text>
+                        <text x="60" y="60" text-anchor="middle" fill="#111111" font-size="10">Serverless</text>
+                        <circle cx="25" cy="25" r="8" fill="#304CB2"/>
+                        <text x="25" y="30" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">λ</text>
+                    </g>
+
+                    <!-- Arrow 2 -->
+                    <line x1="370" y1="140" x2="430" y2="140" stroke="#FFFFFF" stroke-width="3" marker-end="url(#arrowhead)"/>
+                    <text x="400" y="130" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="500">Process</text>
+
+                    <!-- Step 3: S3 Storage -->
+                    <g transform="translate(450, 100)">
+                        <rect width="120" height="80" rx="15" fill="#FFFFFF" filter="url(#shadow)" stroke="#F9B612" stroke-width="2"/>
+                        <text x="60" y="30" text-anchor="middle" fill="#F9B612" font-size="12" font-weight="600">Amazon S3</text>
+                        <text x="60" y="45" text-anchor="middle" fill="#F9B612" font-size="12" font-weight="600">Storage</text>
+                        <text x="60" y="60" text-anchor="middle" fill="#111111" font-size="10">Data Lake</text>
+                        <circle cx="25" cy="25" r="8" fill="#E51D23"/>
+                        <text x="25" y="30" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">📦</text>
+                    </g>
+
+                    <!-- Arrow 3 -->
+                    <line x1="570" y1="140" x2="630" y2="140" stroke="#FFFFFF" stroke-width="3" marker-end="url(#arrowhead)"/>
+                    <text x="600" y="130" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="500">Analytics</text>
+
+                    <!-- Step 4: Dashboard/Analytics -->
+                    <g transform="translate(650, 100)">
+                        <rect width="120" height="80" rx="15" fill="#FFFFFF" filter="url(#shadow)" stroke="#304CB2" stroke-width="2"/>
+                        <text x="60" y="30" text-anchor="middle" fill="#304CB2" font-size="12" font-weight="600">Dashboard</text>
+                        <text x="60" y="45" text-anchor="middle" fill="#304CB2" font-size="12" font-weight="600">& Analytics</text>
+                        <text x="60" y="60" text-anchor="middle" fill="#111111" font-size="10">Real-time</text>
+                        <circle cx="25" cy="25" r="8" fill="#F9B612"/>
+                        <text x="25" y="30" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">📊</text>
+                    </g>
+
+                    <!-- Performance Metrics -->
+                    <g transform="translate(850, 50)">
+                        <rect width="130" height="120" rx="10" fill="rgba(255,255,255,0.1)" stroke="#FFFFFF" stroke-width="1"/>
+                        <text x="65" y="20" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="600">Live Metrics</text>
+                        <text id="diagram-records" x="10" y="40" fill="#FFFFFF" font-size="9">• Loading...</text>
+                        <text id="diagram-processing" x="10" y="55" fill="#FFFFFF" font-size="9">• Loading...</text>
+                        <text id="diagram-countries" x="10" y="70" fill="#FFFFFF" font-size="9">• Loading...</text>
+                        <text id="diagram-success" x="10" y="85" fill="#FFFFFF" font-size="9">• Loading...</text>
+                        <text id="diagram-airborne" x="10" y="100" fill="#FFFFFF" font-size="9">• Loading...</text>
+                    </g>
+
+                    <!-- Subtitle -->
+                    <text x="500" y="40" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="300" opacity="0.9">
+                        End-to-End Serverless Flight Data Processing Pipeline
+                    </text>
+
+                    <!-- Data Flow Labels -->
+                    <text x="500" y="270" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="500" opacity="0.8">
+                        30-second intervals • Event-driven architecture • Auto-scaling • Cost-optimized
+                    </text>
+                </svg>
+            </div>
         </div>
 
         <div id="error-container"></div>
@@ -500,11 +619,59 @@
             }
         }
 
+        // Update architecture diagram metrics
+        function updateDiagramMetrics(data) {
+            const { statistics, executionResult } = data;
+
+            // Update diagram metrics with real data
+            const recordsElement = document.getElementById('diagram-records');
+            const processingElement = document.getElementById('diagram-processing');
+            const countriesElement = document.getElementById('diagram-countries');
+            const successElement = document.getElementById('diagram-success');
+            const airborneElement = document.getElementById('diagram-airborne');
+
+            if (recordsElement) {
+                recordsElement.textContent = `• ${formatNumber(statistics.total_flights || 0)} records`;
+            }
+
+            if (processingElement && executionResult.processing_time_seconds) {
+                processingElement.textContent = `• ${executionResult.processing_time_seconds}s processing`;
+            } else if (processingElement) {
+                processingElement.textContent = `• Fast processing`;
+            }
+
+            if (countriesElement) {
+                const countryCount = statistics.top_10_countries ? Object.keys(statistics.top_10_countries).length : 0;
+                if (countryCount > 0) {
+                    countriesElement.textContent = `• ${countryCount}+ countries`;
+                } else {
+                    countriesElement.textContent = `• Global coverage`;
+                }
+            }
+
+            if (successElement) {
+                const status = executionResult.status === 'SUCCESS' ? '100% success' : 'Processing';
+                successElement.textContent = `• ${status}`;
+            }
+
+            if (airborneElement) {
+                const airborne = statistics.flights_airborne || 0;
+                if (airborne > 0) {
+                    airborneElement.textContent = `• ${formatNumber(airborne)} airborne`;
+                } else {
+                    airborneElement.textContent = `• Real-time data`;
+                }
+            }
+        }
+
         // Update dashboard with real data
         function updateDashboard(data) {
             console.log('📊 Updating dashboard with data...');
 
             const { statistics, executionResult, metadata } = data;
+
+            // Update architecture diagram first
+            updateDiagramMetrics(data);
 
             // Flight Statistics
             document.getElementById('total-flights').textContent = formatNumber(statistics.total_flights || 0);
@@ -596,9 +763,46 @@
             tbody.innerHTML = rows;
         }
 
+        // Set diagram loading state
+        function setDiagramLoadingState() {
+            const diagramElements = [
+                'diagram-records',
+                'diagram-processing',
+                'diagram-countries',
+                'diagram-success',
+                'diagram-airborne'
+            ];
+
+            diagramElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = '• Loading...';
+                }
+            });
+        }
+
+        // Set diagram error state
+        function setDiagramErrorState() {
+            const diagramElements = [
+                { id: 'diagram-records', text: '• Data unavailable' },
+                { id: 'diagram-processing', text: '• Processing paused' },
+                { id: 'diagram-countries', text: '• Global coverage' },
+                { id: 'diagram-success', text: '• Reconnecting...' },
+                { id: 'diagram-airborne', text: '• Real-time data' }
+            ];
+
+            diagramElements.forEach(({ id, text }) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = text;
+                }
+            });
+        }
+
         // Refresh data function
         async function refreshData() {
             setRefreshButtonState(true);
+            setDiagramLoadingState();
             clearError();
 
             try {
@@ -608,6 +812,7 @@
             } catch (error) {
                 console.error('❌ Failed to refresh data:', error);
                 showError(`Failed to load flight data: ${error.message}`);
+                setDiagramErrorState();
             } finally {
                 setRefreshButtonState(false);
             }
