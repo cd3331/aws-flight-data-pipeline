@@ -991,6 +991,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+## 👤 Author
+
+**Chandra Dunn**
+- GitHub: [@cd3331](https://github.com/cd3331)
+- LinkedIn: [chandra-dunn](https://www.linkedin.com/in/chandra-dunn)
+- Email: cd3331github@gmail.com
+
+## 📧 Contact
+
+For questions or collaboration opportunities, please contact cd3331github@gmail.com
+
+---
+
 <div align="center">
 
 ## 🌟 **Showcase Your Skills**
@@ -1010,8 +1023,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <sub>
-*Demonstrating serverless excellence with AWS, Terraform, and Python • 
-<a href="mailto:your-email@example.com">Contact for Enterprise Solutions</a>*
+*Demonstrating serverless excellence with AWS, Terraform, and Python •
+Built by Chandra Dunn • <a href="mailto:cd3331github@gmail.com">Contact for Enterprise Solutions</a>*
 </sub>
 
 </div>
