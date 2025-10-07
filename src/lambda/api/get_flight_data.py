@@ -10,10 +10,10 @@ import signal
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Initialize S3 client with shorter timeout
+# Initialize S3 client with reasonable timeout for large files
 s3_client = boto3.client('s3', config=boto3.session.Config(
-    read_timeout=2,
-    connect_timeout=2
+    read_timeout=10,
+    connect_timeout=5
 ))
 
 # Configuration
@@ -79,9 +79,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if event.get('httpMethod') == 'OPTIONS':
         return create_response(200, {'message': 'CORS preflight'})
 
-    # Set up timeout handler (2.5 seconds to leave buffer for response)
+    # Set up timeout handler (110 seconds to leave buffer for 120s Lambda timeout)
     signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(2)
+    signal.alarm(110)
     
     try:
         logger.info("Getting latest flight data file metadata from S3")
