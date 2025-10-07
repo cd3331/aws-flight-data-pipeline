@@ -20,13 +20,41 @@ s3_client = boto3.client('s3', config=boto3.session.Config(
 BUCKET_NAME = 'flight-data-pipeline-dev-raw-data-y10swyy3'
 ALLOWED_ORIGIN = '*'  # Temporarily allow all origins for debugging
 
-# Sample static data fallback
+# Sample static data fallback with correct structure
 SAMPLE_DATA = {
-    'bucket_name': BUCKET_NAME,
-    'latest_file_key': 'flight_data/2024/09/flight_data_20240907_120000.json',
-    'file_size_bytes': 2547832,
-    'last_modified': '2024-09-07T12:00:00Z',
-    'message': 'Sample data - S3 connection failed'
+    'statistics': {
+        'total_flights': 0,
+        'flights_airborne': 0,
+        'flights_on_ground': 0,
+        'flights_with_position': 0,
+        'altitude_stats': {
+            'mean_altitude_ft': 0,
+            'max_altitude_ft': 0,
+            'min_altitude_ft': 0
+        },
+        'altitude_distribution': {},
+        'speed_stats': {
+            'mean_speed_knots': 0,
+            'max_speed_knots': 0
+        },
+        'top_10_countries': {},
+        'top_10_fastest_aircraft': [],
+        'data_timestamp': datetime.now().isoformat()
+    },
+    'executionResult': {
+        's3_key': 'flight_data/2024/09/flight_data_20240907_120000.json',
+        'records_processed': 0,
+        'valid_records': 0,
+        'last_modified': datetime.now().isoformat(),
+        'execution_id': 'fallback',
+        'status': 'ERROR',
+        'processing_time_seconds': 0
+    },
+    'metadata': {
+        'bucket_name': BUCKET_NAME,
+        'file_size_bytes': 0,
+        'message': 'Sample data - S3 connection failed'
+    }
 }
 
 
@@ -156,7 +184,8 @@ def get_latest_file_metadata(bucket_name: str) -> Dict[str, Any]:
             'valid_records': len(states),
             'last_modified': latest_object['LastModified'].isoformat(),
             'execution_id': f"live-{int(datetime.now().timestamp())}",
-            'status': 'SUCCESS'
+            'status': 'SUCCESS',
+            'processing_time_seconds': 0.5
         }
 
         # Add file metadata
@@ -170,14 +199,42 @@ def get_latest_file_metadata(bucket_name: str) -> Dict[str, Any]:
         return processed_stats
 
     except Exception as e:
-        logger.warning(f"Failed to process flight data: {e}, falling back to metadata")
-        # Fallback to metadata only if processing fails
+        logger.warning(f"Failed to process flight data: {e}, falling back to empty structure")
+        # Fallback to empty structure with correct format if processing fails
         return {
-            'bucket_name': bucket_name,
-            'latest_file_key': latest_key,
-            'file_size_bytes': latest_object['Size'],
-            'last_modified': latest_object['LastModified'].isoformat(),
-            'message': f'File metadata only - processing failed: {str(e)}'
+            'statistics': {
+                'total_flights': 0,
+                'flights_airborne': 0,
+                'flights_on_ground': 0,
+                'flights_with_position': 0,
+                'altitude_stats': {
+                    'mean_altitude_ft': 0,
+                    'max_altitude_ft': 0,
+                    'min_altitude_ft': 0
+                },
+                'altitude_distribution': {},
+                'speed_stats': {
+                    'mean_speed_knots': 0,
+                    'max_speed_knots': 0
+                },
+                'top_10_countries': {},
+                'top_10_fastest_aircraft': [],
+                'data_timestamp': datetime.now().isoformat()
+            },
+            'executionResult': {
+                's3_key': latest_key,
+                'records_processed': 0,
+                'valid_records': 0,
+                'last_modified': latest_object['LastModified'].isoformat(),
+                'execution_id': f'error-{int(datetime.now().timestamp())}',
+                'status': 'ERROR',
+                'processing_time_seconds': 0
+            },
+            'metadata': {
+                'bucket_name': bucket_name,
+                'file_size_bytes': latest_object['Size'],
+                'message': f'File metadata only - processing failed: {str(e)}'
+            }
         }
 
 def process_flight_states(states: list, timestamp: int = None) -> Dict[str, Any]:
